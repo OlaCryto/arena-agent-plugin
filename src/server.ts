@@ -54,6 +54,80 @@ app.all("/admin/keys/revoke", requireAdmin, (req, res) => {
 
 // === PUBLIC ENDPOINTS ===
 
+app.get("/agent-instructions", (req, res) => {
+  res.type("text/plain").send(`# Arena Plugin — Agent Instructions
+
+You have access to the Arena Plugin API for buying and staking ARENA tokens on the Avalanche blockchain. ARENA is the native token of The Arena (arena.social), a SocialFi platform. Staking ARENA makes you an "Arena Champion" — you earn 2.5% of every token that graduates from Arena's bonding curve launchpad.
+
+## Authentication
+Include this header with EVERY request:
+  X-API-Key: <your-api-key>
+
+## Base URL
+${req.protocol}://${req.get("host")}
+
+## Endpoints
+
+### Read-Only (no transaction needed)
+
+GET /balances?wallet=<address>
+  Returns: { avax, arena, wallet }
+  Use to check AVAX and ARENA token balances for any wallet.
+
+GET /quote?avax=<amount>
+  Returns: { avaxIn, arenaOut, fee, netAvax }
+  Use to get a price quote before buying. Shows the 0.3% service fee breakdown.
+
+GET /stake/info?wallet=<address>
+  Returns: { stakedAmount, pendingRewards }
+  Use to check how much ARENA is staked and any pending rewards.
+
+### Build Transactions (returns unsigned tx data for you to sign)
+
+GET /build/buy?wallet=<address>&avax=<amount>&slippage=<bps>
+  Returns: { to, data, value, chainId, description }
+  Builds an unsigned transaction to buy ARENA with AVAX.
+  - amount: AVAX to spend (e.g. "0.1")
+  - slippage: optional, basis points (default 100 = 1%)
+
+GET /build/stake?wallet=<address>&amount=<amount>
+  Returns: { transactions: [approveTx, stakeTx] }
+  Builds 2 unsigned transactions: approve ARENA token + deposit into staking.
+  - amount: ARENA to stake, or "max" for entire balance
+
+GET /build/buy-and-stake?wallet=<address>&avax=<amount>&slippage=<bps>
+  Returns: { transactions: [buyTx, approveTx, stakeTx] }
+  Builds 3 unsigned transactions to buy ARENA and stake in one flow.
+
+GET /build/unstake?wallet=<address>&amount=<amount>
+  Returns: { to, data, value, chainId, description }
+  Builds an unsigned transaction to withdraw staked ARENA + claim rewards.
+  - amount: ARENA to unstake, or "max" for all
+
+### Broadcast
+
+POST /broadcast
+  Body: { "signedTx": "<signed transaction hex>" }
+  Returns: { txHash }
+  Broadcasts a signed transaction to Avalanche C-Chain.
+
+## Workflow
+
+1. Call a /build/* endpoint to get unsigned transaction(s)
+2. Sign each transaction locally with your wallet private key
+3. POST each signed transaction to /broadcast in order
+4. Verify results using /balances or /stake/info
+
+## Important Notes
+- All transactions are on Avalanche C-Chain (chainId: 43114)
+- A 0.3% fee is applied on buy transactions
+- For /build/buy-and-stake, you get 3 transactions — execute them IN ORDER
+- Always check /quote before buying to see expected output
+- Use "max" as amount to stake/unstake entire balance
+- The ARENA token address is 0xB8d7710f7d8349A506b75dD184F05777c82dAd0C
+`);
+});
+
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
