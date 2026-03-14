@@ -99,10 +99,11 @@ GET /stake/info?wallet=<address>
 ### Build Transactions (returns unsigned tx data for you to sign)
 
 GET /build/buy?wallet=<address>&avax=<amount>&slippage=<bps>
-  Returns: { to, data, value, chainId, description }
+  Returns: { to, data, value, chainId, gas, gasLimit, description }
   Builds an unsigned transaction to buy ARENA with AVAX.
   - amount: AVAX to spend (e.g. "0.1")
-  - slippage: optional, basis points (default 100 = 1%)
+  - slippage: optional, basis points (default 500 = 5%)
+  - IMPORTANT: The response includes gas/gasLimit. You MUST use the provided gasLimit (500000) when signing. Default gas estimates are too low for DEX swaps and WILL cause reverts.
 
 GET /build/stake?wallet=<address>&amount=<amount>
   Returns: { transactions: [approveTx, stakeTx] }
@@ -139,6 +140,7 @@ POST /broadcast
 - Always check /quote before buying to see expected output
 - Use "max" as amount to stake/unstake entire balance
 - The ARENA token address is 0xB8d7710f7d8349A506b75dD184F05777c82dAd0C
+- CRITICAL: When signing buy transactions, you MUST set gasLimit to the value provided in the response (500000). Do NOT use your own gas estimate — DEX swaps need more gas than estimators predict, and too-low gas will cause the transaction to revert.
 `);
 });
 

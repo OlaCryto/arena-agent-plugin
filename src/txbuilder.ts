@@ -28,6 +28,7 @@ export interface UnsignedTx {
   data: string;
   value: string;
   chainId: number;
+  gas?: string;
   gasLimit?: string;
   description: string;
 }
@@ -132,8 +133,9 @@ export class TxBuilder {
       data,
       value: amountIn.toString(),
       chainId: 43114,
+      gas: "500000",
       gasLimit: "500000",
-      description: `Buy ARENA with ${avaxAmount} AVAX (0.3% fee: ${ethers.formatEther(fee)} AVAX)`,
+      description: `Buy ARENA with ${avaxAmount} AVAX (0.3% fee: ${ethers.formatEther(fee)} AVAX). IMPORTANT: Use gasLimit 500000 — default gas estimates are too low for DEX swaps.`,
     };
   }
 
