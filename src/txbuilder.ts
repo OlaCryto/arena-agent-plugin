@@ -28,6 +28,7 @@ export interface UnsignedTx {
   data: string;
   value: string;
   chainId: number;
+  gasLimit?: string;
   description: string;
 }
 
@@ -115,7 +116,7 @@ export class TxBuilder {
     const expectedOut: bigint = quote.amounts[quote.amounts.length - 1];
     const amountOutMin = expectedOut - (expectedOut * BigInt(slippageBps)) / 10000n;
 
-    const deadline = Math.floor(Date.now() / 1000) + 1200;
+    const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour for agents
 
     const path = {
       pairBinSteps: [...quote.binSteps].map((b: any) => b.toString()),
@@ -131,6 +132,7 @@ export class TxBuilder {
       data,
       value: amountIn.toString(),
       chainId: 43114,
+      gasLimit: "500000",
       description: `Buy ARENA with ${avaxAmount} AVAX (0.3% fee: ${ethers.formatEther(fee)} AVAX)`,
     };
   }
@@ -222,7 +224,21 @@ export class TxBuilder {
   ): Promise<UnsignedTx[]> {
     const buyTx = await this.buildBuyTx(wallet, avaxAmount, slippageBps);
 
-    // For approve + stake, we estimate the ARENA output
+    // Approve max uint256 so any amount received from buy can be staked
+    const iface = new ethers.Interface(ERC20_ABI);
+    const approveData = iface.encodeFunctionData("approve", [
+      ethers.getAddress(ARENA_STAKING),
+      ethers.MaxUint256,
+    ]);
+    const approveTx: UnsignedTx = {
+      to: ethers.getAddress(ARENA_TOKEN),
+      data: approveData,
+      value: "0",
+      chainId: 43114,
+      description: "Approve ARENA for staking (unlimited)",
+    };
+
+    // Estimate ARENA output for the stake tx description
     const amountIn = ethers.parseEther(avaxAmount);
     const fee = (amountIn * 30n) / 10000n;
     const netAmount = amountIn - fee;
@@ -230,10 +246,19 @@ export class TxBuilder {
     const quote = await this.lbQuoter.findBestPathFromAmountIn(route, netAmount);
     const expectedOut: bigint = quote.amounts[quote.amounts.length - 1];
     const decimals = await this.arenaToken.decimals();
-    const expectedArena = ethers.formatUnits(expectedOut, decimals);
 
-    const approveTx = await this.buildApproveStakingTx(wallet, expectedArena);
-    const stakeTx = await this.buildStakeTx(wallet, expectedArena);
+    // Stake tx: use "max" to stake entire ARENA balance (agent must execute AFTER buy confirms)
+    const stakingIface = new ethers.Interface(ARENA_STAKING_ABI);
+    // We can't use "max" at build time since the buy hasn't happened yet,
+    // so we use the estimated amount from the quote
+    const stakeData = stakingIface.encodeFunctionData("deposit", [expectedOut]);
+    const stakeTx: UnsignedTx = {
+      to: ethers.getAddress(ARENA_STAKING),
+      data: stakeData,
+      value: "0",
+      chainId: 43114,
+      description: `Stake ~${ethers.formatUnits(expectedOut, decimals)} ARENA`,
+    };
 
     return [
       { ...buyTx, description: `Step 1/3: ${buyTx.description}` },
@@ -245,7 +270,10 @@ export class TxBuilder {
   /** Broadcast a signed transaction */
   async broadcast(signedTx: string): Promise<string> {
     const txResponse = await this.provider.broadcastTransaction(signedTx);
-    await txResponse.wait();
+    const receipt = await txResponse.wait();
+    if (receipt && receipt.status === 0) {
+      throw new Error(`Transaction reverted on-chain: ${txResponse.hash}`);
+    }
     return txResponse.hash;
   }
 }
