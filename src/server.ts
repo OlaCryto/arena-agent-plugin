@@ -1,0 +1,187 @@
+import express, { Request, Response, NextFunction } from "express";
+import { TxBuilder } from "./txbuilder";
+import { generateApiKey, validateApiKey, listApiKeys, revokeApiKey } from "./apikeys";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const app = express();
+app.use(express.json());
+
+const PORT = parseInt(process.env.PORT || "3000");
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "change-me";
+
+const builder = new TxBuilder();
+
+// --- API Key Middleware ---
+function requireApiKey(req: Request, res: Response, next: NextFunction) {
+  const key = req.headers["x-api-key"] as string;
+  if (!key || !validateApiKey(key)) {
+    res.status(401).json({ error: "Invalid or missing API key. Pass X-API-Key header." });
+    return;
+  }
+  next();
+}
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const secret = req.headers["x-admin-secret"] as string;
+  if (secret !== ADMIN_SECRET) {
+    res.status(403).json({ error: "Invalid admin secret." });
+    return;
+  }
+  next();
+}
+
+// === ADMIN ENDPOINTS (manage API keys) ===
+
+app.all("/admin/keys/create", requireAdmin, (req, res) => {
+  const name = req.body?.name || req.query.name as string;
+  if (!name) return res.status(400).json({ error: "name is required (?name=)" });
+  const key = generateApiKey(name);
+  res.json({ key, name, message: "Store this key — it won't be shown again." });
+});
+
+app.get("/admin/keys", requireAdmin, (_req, res) => {
+  res.json(listApiKeys());
+});
+
+app.all("/admin/keys/revoke", requireAdmin, (req, res) => {
+  const name = req.body?.name || req.query.name as string;
+  if (!name) return res.status(400).json({ error: "name is required (?name=)" });
+  const revoked = revokeApiKey(name);
+  res.json({ revoked, name });
+});
+
+// === PUBLIC ENDPOINTS ===
+
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    router: builder.routerAddress || "not deployed yet",
+    fee: "0.3%",
+  });
+});
+
+// === AUTHENTICATED ENDPOINTS (require API key) ===
+
+// Get balances for a wallet
+app.get("/balances", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    if (!wallet) return res.status(400).json({ error: "?wallet= required" });
+    const result = await builder.getBalances(wallet);
+    res.json({ ...result, wallet });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get staking info
+app.get("/stake/info", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    if (!wallet) return res.status(400).json({ error: "?wallet= required" });
+    const result = await builder.getStakeInfo(wallet);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get quote (includes fee breakdown)
+app.get("/quote", requireApiKey, async (req, res) => {
+  try {
+    const avax = req.query.avax as string;
+    if (!avax) return res.status(400).json({ error: "?avax= required" });
+    const result = await builder.getQuote(avax);
+    res.json({ avaxIn: avax, ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build unsigned tx: buy ARENA
+app.get("/build/buy", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    const avax = req.query.avax as string;
+    const slippage = req.query.slippage as string;
+    if (!wallet || !avax) return res.status(400).json({ error: "?wallet= and ?avax= required" });
+    const tx = await builder.buildBuyTx(wallet, avax, slippage ? Number(slippage) : undefined);
+    res.json(tx);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build unsigned txs: stake ARENA (approve + deposit)
+app.get("/build/stake", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    const amount = req.query.amount as string;
+    if (!wallet || !amount) return res.status(400).json({ error: "?wallet= and ?amount= required" });
+    const approveTx = await builder.buildApproveStakingTx(wallet, amount);
+    const stakeTx = await builder.buildStakeTx(wallet, amount);
+    res.json({ transactions: [approveTx, stakeTx] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build unsigned txs: buy + stake (3 txs)
+app.get("/build/buy-and-stake", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    const avax = req.query.avax as string;
+    const slippage = req.query.slippage as string;
+    if (!wallet || !avax) return res.status(400).json({ error: "?wallet= and ?avax= required" });
+    const txs = await builder.buildBuyAndStakeTxs(wallet, avax, slippage ? Number(slippage) : undefined);
+    res.json({ transactions: txs });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build unsigned tx: unstake
+app.get("/build/unstake", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    const amount = req.query.amount as string;
+    if (!wallet || !amount) return res.status(400).json({ error: "?wallet= and ?amount= required" });
+    const tx = await builder.buildUnstakeTx(wallet, amount);
+    res.json(tx);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Broadcast a signed transaction
+app.post("/broadcast", requireApiKey, async (req, res) => {
+  try {
+    const { signedTx } = req.body;
+    if (!signedTx) return res.status(400).json({ error: "signedTx is required in body" });
+    const txHash = await builder.broadcast(signedTx);
+    res.json({ txHash });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Arena Agent Plugin running on port ${PORT}`);
+  console.log(`Fee: 0.3% on buys via ArenaRouter`);
+  console.log(`Router: ${builder.routerAddress || "NOT SET — deploy contract and set ARENA_ROUTER env var"}`);
+  console.log(`\nAdmin endpoints (X-Admin-Secret header):`);
+  console.log(`  POST   /admin/keys    - Generate API key`);
+  console.log(`  GET    /admin/keys    - List API keys`);
+  console.log(`  DELETE /admin/keys    - Revoke API key`);
+  console.log(`\nAgent endpoints (X-API-Key header):`);
+  console.log(`  GET  /balances?wallet=0x...          - Wallet balances`);
+  console.log(`  GET  /quote?avax=0.1                 - Price quote`);
+  console.log(`  GET  /stake/info?wallet=0x...        - Staking position`);
+  console.log(`  GET  /build/buy?wallet=...&avax=0.1  - Build buy tx`);
+  console.log(`  GET  /build/stake?wallet=...&amount= - Build stake txs`);
+  console.log(`  GET  /build/buy-and-stake?wallet=... - Build buy+stake txs`);
+  console.log(`  GET  /build/unstake?wallet=...       - Build unstake tx`);
+  console.log(`  POST /broadcast                      - Broadcast signed tx`);
+});

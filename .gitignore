@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+api-keys.json
+artifacts/
+cache/
+typechain-types/
