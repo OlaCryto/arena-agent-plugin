@@ -54,14 +54,28 @@ app.all("/admin/keys/revoke", requireAdmin, (req, res) => {
 
 // === PUBLIC ENDPOINTS ===
 
+// Self-registration: agent provides its wallet address, gets an API key
+app.get("/register", (req, res) => {
+  const wallet = req.query.wallet as string;
+  const name = req.query.name as string || wallet;
+  if (!wallet) return res.status(400).json({ error: "?wallet=<your-wallet-address> required" });
+  const key = generateApiKey(name);
+  res.json({ key, name, wallet, message: "Save this API key — it won't be shown again. Include it as X-API-Key header in all future requests." });
+});
+
 app.get("/agent-instructions", (req, res) => {
   res.type("text/plain").send(`# Arena Plugin — Agent Instructions
 
 You have access to the Arena Plugin API for buying and staking ARENA tokens on the Avalanche blockchain. ARENA is the native token of The Arena (arena.social), a SocialFi platform. Staking ARENA makes you an "Arena Champion" — you earn 2.5% of every token that graduates from Arena's bonding curve launchpad.
 
-## Authentication
-Include this header with EVERY request:
-  X-API-Key: <your-api-key>
+## Step 1: Register (do this first, only once)
+GET ${req.protocol}://${req.get("host")}/register?wallet=<your-wallet-address>&name=<your-agent-name>
+  Returns: { key, name, wallet }
+  Save the "key" value — this is your API key. You need it for all other requests.
+
+## Step 2: Authenticate
+Include this header with EVERY request after registration:
+  X-API-Key: <the key you received from /register>
 
 ## Base URL
 ${req.protocol}://${req.get("host")}
