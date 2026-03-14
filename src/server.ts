@@ -64,21 +64,19 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/agent-instructions", (req, res) => {
+  const base = `https://${req.get("host")}`;
   res.type("text/plain").send(`# Arena Plugin — Agent Instructions
 
 You have access to the Arena Plugin API for buying and staking ARENA tokens on the Avalanche blockchain. ARENA is the native token of The Arena (arena.social), a SocialFi platform. Staking ARENA makes you an "Arena Champion" — you earn 2.5% of every token that graduates from Arena's bonding curve launchpad.
 
-## Step 1: Register (do this first, only once)
-GET ${req.protocol}://${req.get("host")}/register?wallet=<your-wallet-address>&name=<your-agent-name>
-  Returns: { key, name, wallet }
-  Save the "key" value — this is your API key. You need it for all other requests.
+## Quick Start
 
-## Step 2: Authenticate
-Include this header with EVERY request after registration:
-  X-API-Key: <the key you received from /register>
+1. Register once: GET ${base}/register?wallet=<your-wallet-address>&name=<your-agent-name>
+2. Save the API key from the response
+3. Include "X-API-Key: <your-key>" header in ALL subsequent requests
 
 ## Base URL
-${req.protocol}://${req.get("host")}
+${base}
 
 ## Endpoints
 
@@ -86,28 +84,27 @@ ${req.protocol}://${req.get("host")}
 
 GET /balances?wallet=<address>
   Returns: { avax, arena, wallet }
-  Use to check AVAX and ARENA token balances for any wallet.
+  Check AVAX and ARENA token balances for any wallet.
 
 GET /quote?avax=<amount>
   Returns: { avaxIn, arenaOut, fee, netAvax }
-  Use to get a price quote before buying. Shows the 0.3% service fee breakdown.
+  Get a price quote before buying. Shows the 0.3% service fee breakdown.
 
 GET /stake/info?wallet=<address>
   Returns: { stakedAmount, pendingRewards }
-  Use to check how much ARENA is staked and any pending rewards.
+  Check how much ARENA is staked and any pending rewards.
 
 ### Build Transactions (returns unsigned tx data for you to sign)
 
 GET /build/buy?wallet=<address>&avax=<amount>&slippage=<bps>
   Returns: { to, data, value, chainId, gas, gasLimit, description }
   Builds an unsigned transaction to buy ARENA with AVAX.
-  - amount: AVAX to spend (e.g. "0.1")
+  - avax: AVAX amount to spend (e.g. "0.1")
   - slippage: optional, basis points (default 500 = 5%)
-  - IMPORTANT: The response includes gas/gasLimit. You MUST use the provided gasLimit (500000) when signing. Default gas estimates are too low for DEX swaps and WILL cause reverts.
 
 GET /build/stake?wallet=<address>&amount=<amount>
   Returns: { transactions: [approveTx, stakeTx] }
-  Builds 2 unsigned transactions: approve ARENA token + deposit into staking.
+  Builds 2 unsigned transactions: approve ARENA + deposit into staking.
   - amount: ARENA to stake, or "max" for entire balance
 
 GET /build/buy-and-stake?wallet=<address>&avax=<amount>&slippage=<bps>
@@ -128,19 +125,25 @@ POST /broadcast
 
 ## Workflow
 
-1. Call a /build/* endpoint to get unsigned transaction(s)
-2. Sign each transaction locally with your wallet private key
-3. POST each signed transaction to /broadcast in order
-4. Verify results using /balances or /stake/info
+1. Check balance: GET /balances?wallet=<your-wallet>
+2. Get a quote: GET /quote?avax=<amount>
+3. Build transaction(s): GET /build/buy, /build/stake, /build/buy-and-stake, or /build/unstake
+4. Sign each transaction with your wallet private key
+5. Broadcast each signed tx: POST /broadcast { "signedTx": "0x..." }
+6. Wait for each tx to confirm before sending the next one
+7. Verify: GET /balances or /stake/info
+
+## CRITICAL — Gas Limit for Buy Transactions
+
+When signing buy transactions (from /build/buy or /build/buy-and-stake), you MUST use the gasLimit provided in the response (500000). Do NOT use your wallet's default gas estimate — DEX swaps require more gas than estimators predict, and too-low gas WILL cause the transaction to revert and waste your gas fee.
 
 ## Important Notes
 - All transactions are on Avalanche C-Chain (chainId: 43114)
-- A 0.3% fee is applied on buy transactions
-- For /build/buy-and-stake, you get 3 transactions — execute them IN ORDER
-- Always check /quote before buying to see expected output
-- Use "max" as amount to stake/unstake entire balance
+- A 0.3% service fee is applied on buy transactions
+- When you get multiple transactions (buy-and-stake returns 3), execute them IN ORDER and wait for each to confirm before sending the next
+- Use "max" as amount to stake/unstake your entire balance
 - The ARENA token address is 0xB8d7710f7d8349A506b75dD184F05777c82dAd0C
-- CRITICAL: When signing buy transactions, you MUST set gasLimit to the value provided in the response (500000). Do NOT use your own gas estimate — DEX swaps need more gas than estimators predict, and too-low gas will cause the transaction to revert.
+- Your private key never leaves your wallet — this API only builds unsigned transactions
 `);
 });
 
