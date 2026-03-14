@@ -2,7 +2,8 @@ import { randomBytes } from "crypto";
 import fs from "fs";
 import path from "path";
 
-const KEYS_FILE = path.join(process.cwd(), "api-keys.json");
+// Use Railway persistent volume if available, otherwise fall back to local file
+const KEYS_FILE = fs.existsSync("/data") ? "/data/api-keys.json" : path.join(process.cwd(), "api-keys.json");
 
 interface ApiKeyEntry {
   key: string;
