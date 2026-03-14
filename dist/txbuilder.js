@@ -17,7 +17,7 @@ const ARENA_ROUTER_ABI = [
 ];
 class TxBuilder {
     constructor(rpcUrl) {
-        this.provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl || constants_1.RPC_URL);
+        this.provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl || constants_1.RPC_URL, undefined, { staticNetwork: true, batchMaxCount: 1 });
         this.arenaToken = new ethers_1.ethers.Contract(ethers_1.ethers.getAddress(constants_1.ARENA_TOKEN), constants_1.ERC20_ABI, this.provider);
         this.lbQuoter = new ethers_1.ethers.Contract(ethers_1.ethers.getAddress(constants_1.LB_QUOTER), constants_1.LB_QUOTER_ABI, this.provider);
         if (ARENA_ROUTER) {

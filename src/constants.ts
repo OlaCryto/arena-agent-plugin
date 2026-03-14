@@ -1,6 +1,6 @@
 // Avalanche C-Chain
 export const CHAIN_ID = 43114;
-export const RPC_URL = process.env.RPC_URL || "https://api.avax.network/ext/bc/C/rpc";
+export const RPC_URL = process.env.RPC_URL || "https://hardworking-dawn-sailboat.avalanche-mainnet.quiknode.pro/022a54c6e74f3463167816f37d1f2ad5ae91af21/ext/bc/C/rpc/";
 
 // Token addresses
 export const ARENA_TOKEN = "0xB8d7710f7d8349A506b75dD184F05777c82dAd0C";

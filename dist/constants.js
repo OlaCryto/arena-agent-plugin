@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LB_QUOTER_ABI = exports.LB_ROUTER_ABI = exports.ARENA_STAKING_ABI = exports.ERC20_ABI = exports.DEFAULT_SLIPPAGE_BPS = exports.LB_QUOTER = exports.LB_ROUTER = exports.ARENA_STAKING = exports.WAVAX = exports.ARENA_TOKEN = exports.RPC_URL = exports.CHAIN_ID = void 0;
 // Avalanche C-Chain
 exports.CHAIN_ID = 43114;
-exports.RPC_URL = process.env.RPC_URL || "https://api.avax.network/ext/bc/C/rpc";
+exports.RPC_URL = process.env.RPC_URL || "https://hardworking-dawn-sailboat.avalanche-mainnet.quiknode.pro/022a54c6e74f3463167816f37d1f2ad5ae91af21/ext/bc/C/rpc/";
 // Token addresses
 exports.ARENA_TOKEN = "0xB8d7710f7d8349A506b75dD184F05777c82dAd0C";
 exports.WAVAX = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";

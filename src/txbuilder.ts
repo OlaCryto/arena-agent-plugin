@@ -40,7 +40,7 @@ export class TxBuilder {
   private routerContract: ethers.Contract;
 
   constructor(rpcUrl?: string) {
-    this.provider = new ethers.JsonRpcProvider(rpcUrl || RPC_URL);
+    this.provider = new ethers.JsonRpcProvider(rpcUrl || RPC_URL, undefined, { staticNetwork: true, batchMaxCount: 1 });
     this.arenaToken = new ethers.Contract(ethers.getAddress(ARENA_TOKEN), ERC20_ABI, this.provider);
     this.lbQuoter = new ethers.Contract(ethers.getAddress(LB_QUOTER), LB_QUOTER_ABI, this.provider);
 
