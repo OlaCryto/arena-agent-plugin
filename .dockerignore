@@ -1,6 +1,8 @@
 node_modules
-src
+dist
 .env
 .git
-*.md
-tsconfig.json
+artifacts
+cache
+typechain-types
+api-keys.json
