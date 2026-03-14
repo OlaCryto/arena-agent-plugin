@@ -13,8 +13,8 @@ export const ARENA_STAKING = "0xeffb809d99142ce3b51c1796c096f5b01b4aaec4";
 export const LB_ROUTER = "0x18556DA13313f3532c54711497A8FedAC273220E";
 export const LB_QUOTER = "0x9A550a522BBaDFB69019b0432800Ed17855A51C3";
 
-// Default slippage: 1%
-export const DEFAULT_SLIPPAGE_BPS = 100;
+// Default slippage: 5% (agents may have delay between quote and broadcast)
+export const DEFAULT_SLIPPAGE_BPS = 500;
 
 // ABIs — minimal interfaces for the functions we need
 
