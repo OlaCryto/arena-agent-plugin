@@ -4,7 +4,7 @@ COPY package*.json ./
 RUN npm ci
 COPY tsconfig.json ./
 COPY src/ ./src/
-RUN npx tsc
+RUN NODE_OPTIONS="--max-old-space-size=4096" npx tsc
 
 FROM node:20-slim
 WORKDIR /app
