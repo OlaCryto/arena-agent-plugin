@@ -231,7 +231,7 @@ Each token in the response includes: name, symbol, price (ETH + USD), volume, ho
 - Creator has 0 twitter followers and 50+ tokens created → serial launcher, probably rugs
 - 1 holder has 40%+ of supply → whale can dump anytime
 - High sell count but low buy count in last 1h → momentum dying
-- Token already graduated (lpDeployed=true) → can't trade here, it's on DEX now
+- Token already graduated (lpDeployed=true) → still tradeable! The API auto-routes through LFJ DEX
 
 ### Good signs:
 - Graduating token with accelerating buy volume
@@ -267,7 +267,7 @@ GET /launchpad/portfolio?wallet=<addr> — every token you bought through this A
 
 1. **Gas limit** — ALWAYS use the gasLimit from the response (500000 for trades, 60000 for approve). Never use your wallet's default estimate — it WILL revert and waste gas.
 2. **Sell is 2 transactions** — approve first, wait for it to confirm, then sell. Always in order.
-3. **Graduated tokens can't be traded here** — if lpDeployed=true, the token moved to DEX.
+3. **Graduated tokens are supported** — if lpDeployed=true, the API auto-routes through LFJ DEX. The response will include \`graduated: true\` so you know it's a DEX swap. Same endpoints, same flow.
 4. **Token amounts are tiny fractions** — seeing 0.000001 tokens for 0.1 AVAX is normal. The bonding curve is steep by design.
 5. **No fees on launchpad trades** — the protocol takes its own fee, we add nothing.
 6. **chainId: 43114** — everything is on Avalanche C-Chain.

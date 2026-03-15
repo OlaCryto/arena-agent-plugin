@@ -112,7 +112,17 @@ export declare class LaunchpadModule {
         graduated: any;
         graduationProgress: string;
     }>;
-    buildLaunchpadBuyTx(wallet: string, tokenId: string, avaxAmount: string, slippageBps?: number): Promise<UnsignedTx>;
-    buildLaunchpadSellTx(wallet: string, tokenId: string, amount: string, slippageBps?: number): Promise<UnsignedTx[]>;
+    buildLaunchpadBuyTx(wallet: string, tokenId: string, avaxAmount: string, slippageBps?: number): Promise<UnsignedTx | {
+        transactions: UnsignedTx[];
+        summary: string;
+        via: string;
+        graduated: true;
+    }>;
+    buildLaunchpadSellTx(wallet: string, tokenId: string, amount: string, slippageBps?: number): Promise<UnsignedTx[] | {
+        transactions: UnsignedTx[];
+        summary: string;
+        via: string;
+        graduated: true;
+    }>;
 }
 //# sourceMappingURL=index.d.ts.map

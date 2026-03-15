@@ -367,9 +367,16 @@ function launchpadRoutes(launchpad) {
             const slippage = req.query.slippage;
             if (!wallet || !tokenId || !avax)
                 return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?avax= required" });
-            const tx = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
+            const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
             (0, positions_1.trackPosition)(wallet, Number(tokenId));
-            res.json(tx);
+            // Graduated tokens return a DexModule response
+            if ("graduated" in result) {
+                const { graduated, transactions, summary } = result;
+                res.json({ graduated, transactions, summary, note: "This token has graduated from the bonding curve and now trades on Pharaoh DEX." });
+            }
+            else {
+                res.json(result);
+            }
         }
         catch (err) {
             res.status(500).json({ error: err.message });
@@ -383,10 +390,17 @@ function launchpadRoutes(launchpad) {
             const slippage = req.query.slippage;
             if (!wallet || !tokenId || !amount)
                 return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?amount= required" });
-            const txs = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
+            const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
             if (amount === "max")
                 (0, positions_1.removePosition)(wallet, Number(tokenId));
-            res.json({ transactions: txs });
+            // Graduated tokens return a DexModule response
+            if ("graduated" in result) {
+                const { graduated, transactions, summary } = result;
+                res.json({ graduated, transactions, summary, note: "This token has graduated from the bonding curve and now trades on Pharaoh DEX." });
+            }
+            else {
+                res.json({ transactions: result });
+            }
         }
         catch (err) {
             res.status(500).json({ error: err.message });
