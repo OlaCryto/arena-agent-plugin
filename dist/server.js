@@ -17,6 +17,7 @@ const swap_2 = require("./routes/swap");
 const staking_2 = require("./routes/staking");
 const launchpad_2 = require("./routes/launchpad");
 const dex_2 = require("./routes/dex");
+const dashboard_1 = require("./routes/dashboard");
 const instructions_1 = require("./routes/instructions");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -50,6 +51,9 @@ app.use((0, swap_2.swapRoutes)(swap, provider));
 app.use((0, staking_2.stakingRoutes)(staking, swap));
 app.use((0, launchpad_2.launchpadRoutes)(launchpad));
 app.use((0, dex_2.dexRoutes)(dex));
+app.use((0, dashboard_1.dashboardRoutes)());
+// Serve frontend
+app.use(express_1.default.static("frontend"));
 app.listen(PORT, () => {
     console.log(`Arena Agent Plugin running on port ${PORT}`);
     console.log(`Fee: 0.3% on buys via ArenaRouter`);

@@ -14,6 +14,7 @@ import { swapRoutes } from "./routes/swap";
 import { stakingRoutes } from "./routes/staking";
 import { launchpadRoutes } from "./routes/launchpad";
 import { dexRoutes } from "./routes/dex";
+import { dashboardRoutes } from "./routes/dashboard";
 import { instructionRoutes } from "./routes/instructions";
 
 const app = express();
@@ -52,6 +53,10 @@ app.use(swapRoutes(swap, provider));
 app.use(stakingRoutes(staking, swap));
 app.use(launchpadRoutes(launchpad));
 app.use(dexRoutes(dex));
+app.use(dashboardRoutes());
+
+// Serve frontend
+app.use(express.static("frontend"));
 
 app.listen(PORT, () => {
   console.log(`Arena Agent Plugin running on port ${PORT}`);

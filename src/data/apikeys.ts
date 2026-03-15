@@ -52,3 +52,11 @@ export function revokeApiKey(name: string): boolean {
   saveKeys(filtered);
   return true;
 }
+
+export function getAgentCount(): number {
+  return loadKeys().length;
+}
+
+export function getAgents(): { name: string; wallet?: string; createdAt: string }[] {
+  return loadKeys().map(({ name, wallet, createdAt }) => ({ name, wallet, createdAt }));
+}

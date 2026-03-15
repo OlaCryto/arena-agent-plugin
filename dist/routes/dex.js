@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.dexRoutes = dexRoutes;
 const express_1 = require("express");
 const middleware_1 = require("./middleware");
+const tradelog_1 = require("../data/tradelog");
 function dexRoutes(dex) {
     const router = (0, express_1.Router)();
     /** List all known tokens with addresses and decimals */
@@ -73,6 +74,7 @@ function dexRoutes(dex) {
                 });
             }
             const result = await dex.buildSwapTx(wallet, from, to, amount, slippage ? Number(slippage) : undefined);
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "dex-swap", `${amount} ${from} → ${to}`, "dex");
             res.json(result);
         }
         catch (err) {

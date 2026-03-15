@@ -3,6 +3,7 @@ import type { SwapModule } from "../swap";
 import { broadcast } from "../core/provider";
 import type { ethers } from "ethers";
 import { requireApiKey } from "./middleware";
+import { logTrade } from "../data/tradelog";
 
 export function swapRoutes(swap: SwapModule, provider: ethers.JsonRpcProvider): Router {
   const router = Router();
@@ -47,6 +48,7 @@ export function swapRoutes(swap: SwapModule, provider: ethers.JsonRpcProvider): 
       const slippage = req.query.slippage as string;
       if (!wallet || !avax) return res.status(400).json({ error: "?wallet= and ?avax= required" });
       const tx = await swap.buildBuyTx(wallet, avax, slippage ? Number(slippage) : undefined);
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "buy-arena", `${avax} AVAX → ARENA`, "swap");
       res.json(tx);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -60,6 +62,7 @@ export function swapRoutes(swap: SwapModule, provider: ethers.JsonRpcProvider): 
       const slippage = req.query.slippage as string;
       if (!wallet || !amount) return res.status(400).json({ error: "?wallet= and ?amount= required (use 'max' to sell all)" });
       const txs = await swap.buildSellArenaTx(wallet, amount, slippage ? Number(slippage) : undefined);
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "sell-arena", `${amount} ARENA → AVAX`, "swap");
       res.json({ transactions: txs });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

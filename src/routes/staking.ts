@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { StakingModule } from "../staking";
 import type { SwapModule } from "../swap";
 import { requireApiKey } from "./middleware";
+import { logTrade } from "../data/tradelog";
 
 export function stakingRoutes(staking: StakingModule, swap: SwapModule): Router {
   const router = Router();
@@ -24,6 +25,7 @@ export function stakingRoutes(staking: StakingModule, swap: SwapModule): Router 
       if (!wallet || !amount) return res.status(400).json({ error: "?wallet= and ?amount= required" });
       const approveTx = await staking.buildApproveStakingTx(wallet, amount);
       const stakeTx = await staking.buildStakeTx(wallet, amount);
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "stake", `Stake ${amount} ARENA`, "staking");
       res.json({ transactions: [approveTx, stakeTx] });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -37,6 +39,7 @@ export function stakingRoutes(staking: StakingModule, swap: SwapModule): Router 
       const slippage = req.query.slippage as string;
       if (!wallet || !avax) return res.status(400).json({ error: "?wallet= and ?avax= required" });
       const txs = await staking.buildBuyAndStakeTxs(wallet, avax, slippage ? Number(slippage) : undefined);
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "buy-and-stake", `Buy + stake with ${avax} AVAX`, "staking");
       res.json({ transactions: txs });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

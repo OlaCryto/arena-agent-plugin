@@ -7,6 +7,8 @@ exports.generateApiKey = generateApiKey;
 exports.validateApiKey = validateApiKey;
 exports.listApiKeys = listApiKeys;
 exports.revokeApiKey = revokeApiKey;
+exports.getAgentCount = getAgentCount;
+exports.getAgents = getAgents;
 const crypto_1 = require("crypto");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -47,5 +49,11 @@ function revokeApiKey(name) {
         return false;
     saveKeys(filtered);
     return true;
+}
+function getAgentCount() {
+    return loadKeys().length;
+}
+function getAgents() {
+    return loadKeys().map(({ name, wallet, createdAt }) => ({ name, wallet, createdAt }));
 }
 //# sourceMappingURL=apikeys.js.map

@@ -4,6 +4,7 @@ exports.swapRoutes = swapRoutes;
 const express_1 = require("express");
 const provider_1 = require("../core/provider");
 const middleware_1 = require("./middleware");
+const tradelog_1 = require("../data/tradelog");
 function swapRoutes(swap, provider) {
     const router = (0, express_1.Router)();
     router.get("/balances", middleware_1.requireApiKey, async (req, res) => {
@@ -50,6 +51,7 @@ function swapRoutes(swap, provider) {
             if (!wallet || !avax)
                 return res.status(400).json({ error: "?wallet= and ?avax= required" });
             const tx = await swap.buildBuyTx(wallet, avax, slippage ? Number(slippage) : undefined);
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "buy-arena", `${avax} AVAX → ARENA`, "swap");
             res.json(tx);
         }
         catch (err) {
@@ -64,6 +66,7 @@ function swapRoutes(swap, provider) {
             if (!wallet || !amount)
                 return res.status(400).json({ error: "?wallet= and ?amount= required (use 'max' to sell all)" });
             const txs = await swap.buildSellArenaTx(wallet, amount, slippage ? Number(slippage) : undefined);
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "sell-arena", `${amount} ARENA → AVAX`, "swap");
             res.json({ transactions: txs });
         }
         catch (err) {

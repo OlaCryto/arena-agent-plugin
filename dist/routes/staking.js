@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.stakingRoutes = stakingRoutes;
 const express_1 = require("express");
 const middleware_1 = require("./middleware");
+const tradelog_1 = require("../data/tradelog");
 function stakingRoutes(staking, swap) {
     const router = (0, express_1.Router)();
     router.get("/stake/info", middleware_1.requireApiKey, async (req, res) => {
@@ -25,6 +26,7 @@ function stakingRoutes(staking, swap) {
                 return res.status(400).json({ error: "?wallet= and ?amount= required" });
             const approveTx = await staking.buildApproveStakingTx(wallet, amount);
             const stakeTx = await staking.buildStakeTx(wallet, amount);
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "stake", `Stake ${amount} ARENA`, "staking");
             res.json({ transactions: [approveTx, stakeTx] });
         }
         catch (err) {
@@ -39,6 +41,7 @@ function stakingRoutes(staking, swap) {
             if (!wallet || !avax)
                 return res.status(400).json({ error: "?wallet= and ?avax= required" });
             const txs = await staking.buildBuyAndStakeTxs(wallet, avax, slippage ? Number(slippage) : undefined);
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "buy-and-stake", `Buy + stake with ${avax} AVAX`, "staking");
             res.json({ transactions: txs });
         }
         catch (err) {

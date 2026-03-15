@@ -8,5 +8,11 @@ export declare function generateApiKey(name: string, wallet?: string): string;
 export declare function validateApiKey(key: string): boolean;
 export declare function listApiKeys(): Omit<ApiKeyEntry, "key">[];
 export declare function revokeApiKey(name: string): boolean;
+export declare function getAgentCount(): number;
+export declare function getAgents(): {
+    name: string;
+    wallet?: string;
+    createdAt: string;
+}[];
 export {};
 //# sourceMappingURL=apikeys.d.ts.map

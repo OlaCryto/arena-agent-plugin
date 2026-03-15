@@ -3,6 +3,7 @@ import type { LaunchpadModule } from "../launchpad";
 import { trackPosition, removePosition, getPositions } from "../data/positions";
 import * as arenaApi from "../data/arena-api";
 import { requireApiKey } from "./middleware";
+import { logTrade } from "../data/tradelog";
 
 function formatToken(t: arenaApi.ArenaToken) {
   return {
@@ -328,6 +329,7 @@ export function launchpadRoutes(launchpad: LaunchpadModule): Router {
       if (!wallet || !tokenId || !avax) return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?avax= required" });
       const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
       trackPosition(wallet, Number(tokenId));
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "launchpad-buy", `Buy tokenId ${tokenId} with ${avax} AVAX`, "launchpad");
 
       // Graduated tokens return a DexModule response
       if ("graduated" in result) {
@@ -350,6 +352,7 @@ export function launchpadRoutes(launchpad: LaunchpadModule): Router {
       if (!wallet || !tokenId || !amount) return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?amount= required" });
       const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
       if (amount === "max") removePosition(wallet, Number(tokenId));
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "launchpad-sell", `Sell tokenId ${tokenId} amount ${amount}`, "launchpad");
 
       // Graduated tokens return a DexModule response
       if ("graduated" in result) {

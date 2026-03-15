@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logiqical | On-Chain Infrastructure for AI Agents</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@200;300;400;500;600;700&family=Inter:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css" />
+<style>
+:root {
+  --bg: #0c0c0c;
+  --bg-raised: #131313;
+  --bg-card: #171717;
+  --bg-card-hover: #1c1c1c;
+  --bg-warm: #DAD9D3;
+  --text: #E8E8E8;
+  --text-mid: #888;
+  --text-muted: #555;
+  --text-dark: #2a2a2a;
+  --accent: #ff6b00;
+  --accent-bright: #ff8c33;
+  --accent-dim: rgba(255, 107, 0, 0.12);
+  --green: #34d399;
+  --green-dim: rgba(52, 211, 153, 0.12);
+  --blue: #60a5fa;
+  --blue-dim: rgba(96, 165, 250, 0.12);
+  --purple: #c084fc;
+  --purple-dim: rgba(192, 132, 252, 0.12);
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+  --gutter: 5vw;
+}
+
+@media (min-width: 834px) { :root { --gutter: 2.5vw; } }
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* ═══ NOISE ═══ */
+.noise {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px; animation: grain 0.4s steps(4) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0,0); } 25% { transform: translate(-2%,-1%); }
+  50% { transform: translate(1%,2%); } 75% { transform: translate(-1%,-2%); }
+}
+
+/* ═══ NAV — full-width liquid glass bar ═══ */
+.nav {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.nav-glass {
+  position: absolute; inset: 0; z-index: 0;
+  background: rgba(12, 12, 12, 0.55);
+  backdrop-filter: blur(40px) saturate(1.6) brightness(0.95);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6) brightness(0.95);
+}
+
+/* Liquid glass shimmer — subtle refraction line */
+.nav-glass::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; width: 100%; height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.04) 20%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 80%,
+    transparent 100%
+  );
+}
+
+.nav-bar {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; height: 2.8rem;
+  padding: 0 var(--gutter);
+}
+
+@media (min-width: 834px) { .nav-bar { height: 2.6rem; } }
+
+.nav-logo {
+  font-family: var(--sans); font-weight: 700; font-size: 1.2rem;
+  letter-spacing: -0.06em; color: #fff; white-space: nowrap;
+  margin-right: auto; line-height: 1;
+  transition: opacity 0.2s;
+}
+.nav-logo:hover { opacity: 0.8; }
+
+.nav-links {
+  display: flex; align-items: center; gap: 0;
+}
+
+@media (max-width: 833px) { .nav-links { display: none; } }
+
+.nav-link {
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-mid); padding: 0 1.1rem; height: 2.6rem;
+  display: flex; align-items: center; position: relative;
+  transition: color 0.25s; white-space: nowrap;
+}
+
+.nav-link::after {
+  content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 1px;
+  background: var(--accent); transition: width 0.3s var(--ease-out), left 0.3s var(--ease-out);
+}
+
+.nav-link:hover { color: var(--text); }
+.nav-link:hover::after { width: 100%; left: 0; }
+
+.nav-link.active { color: var(--text); }
+.nav-link.active::after { width: 100%; left: 0; background: var(--accent); }
+
+.nav-right {
+  display: flex; align-items: center; gap: 0.8rem; margin-left: auto;
+}
+
+.nav-live {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-family: var(--mono); font-size: 0.52rem; font-weight: 500;
+  color: var(--green); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.nav-live-dot {
+  width: 0.3rem; height: 0.3rem; border-radius: 50%;
+  background: var(--green); animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+.nav-search {
+  display: flex; align-items: center; justify-content: center;
+  width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  color: var(--text-mid); transition: color 0.2s, background 0.2s;
+  font-size: 0.85rem;
+}
+.nav-search:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+/* Mobile hamburger */
+.nav-burger {
+  display: none; width: 1.5rem; height: 1.5rem;
+  flex-direction: column; justify-content: center; gap: 0.25rem;
+  cursor: pointer;
+}
+.nav-burger span {
+  display: block; width: 100%; height: 1px; background: var(--text);
+  transition: transform 0.3s, opacity 0.3s;
+}
+@media (max-width: 833px) {
+  .nav-burger { display: flex; }
+  .nav-right .nav-live { display: none; }
+  .nav-links {
+    position: absolute; top: 100%; left: 0; width: 100%;
+    flex-direction: column; background: rgba(12,12,12,0.95);
+    backdrop-filter: blur(40px); border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0; max-height: 0; overflow: hidden;
+    transition: max-height 0.35s var(--ease-out), padding 0.35s;
+    display: flex;
+  }
+  .nav-links.open { max-height: 20rem; padding: 0.8rem 0; }
+  .nav-link { height: auto; padding: 0.6rem var(--gutter); }
+  .nav-burger.open span:first-child { transform: rotate(45deg) translate(2px, 2px); }
+  .nav-burger.open span:last-child { transform: rotate(-45deg) translate(2px, -2px); }
+}
+
+/* ═══ HERO ═══ */
+.hero {
+  min-height: 100vh; min-height: 100svh; position: relative;
+  display: flex; align-items: center; overflow: hidden;
+}
+
+.hero::after {
+  content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 35%;
+  background: linear-gradient(to top, var(--bg), transparent); pointer-events: none; z-index: 2;
+}
+
+/* Animated network dots */
+.hero-canvas { position: absolute; inset: 0; z-index: 0; }
+
+/* Giant brand text */
+.hero-brand {
+  position: absolute; z-index: 1; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--sans); font-weight: 800; text-transform: uppercase;
+  font-size: clamp(8rem, 18vw, 20rem); letter-spacing: -0.04em;
+  line-height: 0.85; white-space: nowrap; user-select: none; pointer-events: none;
+  color: rgba(255,107,0,0.07);
+  -webkit-text-stroke: 1.5px rgba(255, 107, 0, 0.15);
+}
+
+.hero-content { position: relative; z-index: 3; padding: 0 var(--gutter); max-width: 52rem; }
+
+.hero-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
+  margin-bottom: 1.5rem;
+}
+.hero-label::before { content: ''; width: 1.5rem; height: 1px; background: var(--accent); }
+
+.hero-title {
+  font-size: clamp(3rem, 7.5vw, 5.5rem); font-weight: 300;
+  letter-spacing: -0.04em; line-height: 1.04; margin-bottom: 1.2rem;
+}
+.hero-title span { display: block; }
+.hero-title .hl {
+  background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.hero-desc {
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem); font-weight: 300;
+  line-height: 1.65; color: var(--text-mid); max-width: 30rem; margin-bottom: 2rem;
+}
+.hero-desc strong { color: var(--text); font-weight: 400; }
+
+.hero-btns { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+.btn-accent {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+  background: var(--accent); color: #fff; padding: 0.6rem 1.3rem;
+  border-radius: 0.3rem; position: relative; overflow: hidden; transition: box-shadow 0.3s;
+}
+.btn-accent::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transition: left 0.5s;
+}
+.btn-accent:hover::before { left: 100%; }
+.btn-accent:hover { box-shadow: 0 0 24px rgba(255,107,0,0.3); }
+
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 400;
+  color: var(--text-mid); padding: 0.6rem 1.3rem; border-radius: 0.3rem;
+  border: 1px solid var(--border); transition: all 0.2s;
+}
+.btn-outline:hover { border-color: var(--text); color: var(--text); background: rgba(255,255,255,0.03); }
+
+/* Hero live ticker */
+.hero-ticker {
+  position: absolute; bottom: 0; left: 0; width: 100%; z-index: 4;
+  border-top: 1px solid var(--border); background: rgba(12,12,12,0.8);
+  backdrop-filter: blur(20px); overflow: hidden;
+}
+.ticker-track {
+  display: flex; animation: scroll 40s linear infinite; width: max-content;
+}
+.ticker-track:hover { animation-play-state: paused; }
+.ticker-item {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.5rem;
+  font-family: var(--mono); font-size: 0.65rem; color: var(--text-mid);
+  white-space: nowrap; border-right: 1px solid var(--border);
+}
+.ticker-item .t-val { color: var(--text); font-weight: 500; }
+.ticker-item .t-accent { color: var(--accent); }
+.ticker-item .t-green { color: var(--green); }
+@keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+/* ═══ INTRO ═══ */
+.intro { padding: 10vw var(--gutter); }
+@media (min-width: 834px) { .intro { padding: 6vw var(--gutter); } }
+
+.slabel {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-family: var(--mono); font-size: 0.65rem; font-weight: 400;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 1.5rem;
+}
+.slabel::before { content: ''; width: 0.3rem; height: 0.3rem; border-radius: 50%; background: var(--accent); }
+
+.intro-text {
+  font-size: clamp(1.5rem, 3.2vw, 2.6rem); font-weight: 300;
+  letter-spacing: -0.03em; line-height: 1.2; color: rgba(232,232,232,0.3); max-width: 80%;
+}
+@media (min-width: 834px) { .intro-text { max-width: 72%; } }
+.intro-text span { color: var(--text); }
+
+/* ═══ FEATURE CARDS ═══ */
+.features { padding: 0 var(--gutter) 6vw; }
+
+.f-grid { display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+@media (min-width: 834px) { .f-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.fc {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: clamp(0.8rem, 2vw, 1.6rem); padding: clamp(1.5rem, 2.5vw, 2rem);
+  position: relative; overflow: hidden; display: flex; flex-direction: column;
+  min-height: 16rem; transition: all 0.35s;
+}
+@media (min-width: 834px) { .fc { min-height: 18vw; } }
+
+.fc:hover { border-color: var(--border-hover); background: var(--bg-card-hover); transform: translateY(-3px); }
+
+.fc.wide { grid-column: 1 / -1; min-height: 11rem; }
+@media (min-width: 834px) { .fc.wide { min-height: 10vw; } }
+
+.fc-ico { font-size: 1.4rem; color: var(--text-muted); transition: color 0.3s; }
+.fc:hover .fc-ico { color: var(--accent); }
+
+.fc-num {
+  position: absolute; bottom: -0.3rem; right: 0.8rem;
+  font-family: var(--mono); font-size: clamp(5rem, 12vw, 8rem);
+  font-weight: 200; color: rgba(255,255,255,0.02); line-height: 0.85;
+  letter-spacing: -0.06em; user-select: none; transition: color 0.3s;
+}
+.fc:hover .fc-num { color: rgba(255,107,0,0.04); }
+@media (min-width: 834px) { .fc-num { font-size: 6vw; } }
+
+.fc-body { margin-top: auto; }
+.fc-title { font-size: clamp(1.05rem, 1.4vw, 1.3rem); font-weight: 400; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+.fc-desc { font-size: clamp(0.78rem, 0.9vw, 0.9rem); color: var(--text-mid); line-height: 1.5; max-width: 22rem; }
+
+.fc-live {
+  display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.7rem;
+  font-family: var(--mono); font-size: 0.58rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--green);
+}
+.fc-live::before { content: ''; width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--green); }
+
+/* ═══ MODULES ═══ */
+.modules { background: var(--bg-raised); padding: 6vw var(--gutter); }
+@media (min-width: 834px) { .modules { padding: 4.5vw var(--gutter); } }
+
+.mod-head { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 2rem; }
+@media (min-width: 834px) { .mod-head { flex-direction: row; align-items: flex-end; justify-content: space-between; } }
+
+.mod-title { font-size: clamp(1.6rem, 2.8vw, 2.3rem); font-weight: 300; letter-spacing: -0.03em; line-height: 1.1; }
+.mod-title span { display: block; }
+.mod-sub { font-size: clamp(0.8rem, 0.95vw, 0.95rem); color: var(--text-mid); max-width: 20rem; }
+
+.mc-list { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.mc {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 0.7rem; display: flex; align-items: stretch;
+  padding: 0.45rem; gap: 0.8rem; transition: all 0.3s; cursor: default;
+}
+.mc:hover { background: var(--accent); border-color: var(--accent); }
+
+.mc-ico {
+  aspect-ratio: 1; width: 3.6rem; background: rgba(255,255,255,0.04);
+  border-radius: 0.45rem; display: grid; place-items: center;
+  font-size: 1.2rem; color: var(--text-muted); flex-shrink: 0;
+  transition: all 0.3s;
+}
+@media (min-width: 834px) { .mc-ico { width: clamp(3.2rem, 3.5vw, 4.5rem); } }
+.mc:hover .mc-ico { background: rgba(0,0,0,0.15); color: #fff; }
+
+.mc-body { display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; padding: 0.2rem 0; }
+.mc-name { font-size: clamp(0.88rem, 1vw, 1.05rem); font-weight: 400; transition: color 0.3s; }
+.mc:hover .mc-name { color: #fff; }
+.mc-desc { font-size: clamp(0.72rem, 0.82vw, 0.85rem); color: var(--text-muted); margin-top: 0.1rem; transition: color 0.3s; }
+.mc:hover .mc-desc { color: rgba(255,255,255,0.55); }
+.mc-tag { font-family: var(--mono); font-size: 0.52rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--green); margin-top: 0.25rem; transition: color 0.3s; }
+.mc:hover .mc-tag { color: rgba(255,255,255,0.65); }
+
+.mc-arr {
+  display: flex; align-items: flex-end; padding: 0.4rem; font-size: 0.95rem;
+  color: var(--text-muted); transition: all 0.3s;
+}
+.mc:hover .mc-arr { color: #fff; transform: translateX(3px); }
+
+/* ═══ ACTIVITY ═══ */
+.activity { padding: 6vw var(--gutter); }
+@media (min-width: 834px) { .activity { padding: 4.5vw var(--gutter); } }
+
+.sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+.sh-title { font-size: clamp(1.6rem, 2.8vw, 2.3rem); font-weight: 300; letter-spacing: -0.03em; }
+.sh-badge {
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent);
+  display: flex; align-items: center; gap: 0.3rem;
+}
+.sh-badge::before { content: ''; width: 0.3rem; height: 0.3rem; border-radius: 50%; background: var(--accent); }
+
+.feed { display: flex; flex-direction: column; }
+
+.fr {
+  display: flex; align-items: center; gap: 0.8rem; padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border); font-size: 0.82rem; transition: background 0.15s;
+}
+.fr:hover { background: rgba(255,255,255,0.015); }
+
+.fr-time { color: var(--text-muted); font-family: var(--mono); font-size: 0.62rem; width: 8rem; flex-shrink: 0; }
+.fr-tag {
+  font-family: var(--mono); font-weight: 500; font-size: 0.56rem; letter-spacing: 0.03em;
+  text-transform: uppercase; padding: 0.18rem 0.5rem; border-radius: 0.18rem;
+  flex-shrink: 0; min-width: 5.2rem; text-align: center;
+}
+.fr-tag.swap { color: var(--blue); background: var(--blue-dim); }
+.fr-tag.staking { color: var(--green); background: var(--green-dim); }
+.fr-tag.launchpad { color: var(--purple); background: var(--purple-dim); }
+.fr-tag.dex { color: var(--accent); background: var(--accent-dim); }
+.fr-detail { flex: 1; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fr-wallet { color: rgba(255,255,255,0.15); font-family: var(--mono); font-size: 0.62rem; flex-shrink: 0; }
+@media (max-width: 833px) { .fr-wallet { display: none; } .fr-time { width: 5.5rem; font-size: 0.56rem; } }
+
+.feed-empty {
+  text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);
+  font-family: var(--mono); font-size: 0.78rem; border: 1px solid var(--border); border-radius: 0.5rem;
+}
+
+/* ═══ AGENTS ═══ */
+.agents { padding: 0 var(--gutter) 6vw; }
+@media (min-width: 834px) { .agents { padding: 0 var(--gutter) 4.5vw; } }
+
+.ag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.4rem; }
+
+.ag {
+  background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+  border-radius: 0.5rem; padding: 0.9rem 1rem; transition: all 0.2s;
+}
+.ag:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.04); }
+
+.ag-name { font-size: 0.88rem; font-weight: 400; display: flex; align-items: center; gap: 0.35rem; }
+.ag-dot { width: 0.35rem; height: 0.35rem; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.ag-addr { font-family: var(--mono); font-size: 0.6rem; color: rgba(255,255,255,0.18); margin-top: 0.2rem; }
+.ag-date { font-family: var(--mono); font-size: 0.55rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* ═══ ENDPOINTS — warm beige section ═══ */
+.endpoints { background: var(--bg-warm); color: var(--text-dark); padding: 6vw var(--gutter); }
+@media (min-width: 834px) { .endpoints { padding: 4.5vw var(--gutter) 5.5vw; } }
+
+.endpoints .sh-title { color: var(--text-dark); }
+.endpoints .sh-badge { color: var(--accent); }
+.endpoints .sh-badge::before { background: var(--accent); }
+
+.ep-cat {
+  font-family: var(--mono); font-size: 0.58rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.06em; color: #888;
+  margin-top: 1.3rem; margin-bottom: 0.2rem;
+}
+
+.ep-rows { border-top: 1px solid rgba(0,0,0,0.08); }
+
+.ep-r {
+  display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06); transition: all 0.2s;
+}
+.ep-r:hover { background: rgba(0,0,0,0.03); padding-left: 0.4rem; }
+
+.ep-m {
+  font-family: var(--mono); font-size: 0.52rem; font-weight: 600;
+  padding: 0.1rem 0.4rem; border-radius: 0.12rem; flex-shrink: 0;
+  min-width: 2.3rem; text-align: center; text-transform: uppercase;
+}
+.ep-m.get { background: var(--green-dim); color: #2d8a56; }
+.ep-m.post { background: var(--accent-dim); color: var(--accent); }
+
+.ep-p { font-family: var(--mono); font-size: 0.78rem; font-weight: 400; flex: 1; }
+.ep-d { font-size: 0.72rem; color: #888; text-align: right; }
+@media (max-width: 833px) { .ep-d { display: none; } }
+
+/* ═══ ROADMAP ═══ */
+.roadmap { padding: 6vw var(--gutter); }
+@media (min-width: 834px) { .roadmap { padding: 4.5vw var(--gutter); } }
+
+.rm-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-top: 1.5rem; }
+@media (min-width: 834px) { .rm-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.rm-col-label {
+  font-family: var(--mono); font-size: 0.56rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.rm-col-label .rm-dot {
+  width: 0.35rem; height: 0.35rem; border-radius: 50%;
+}
+.rm-col-label.now .rm-dot { background: var(--green); }
+.rm-col-label.now { color: var(--green); }
+.rm-col-label.next .rm-dot { background: var(--accent); }
+.rm-col-label.next { color: var(--accent); }
+.rm-col-label.future .rm-dot { background: var(--purple); }
+.rm-col-label.future { color: var(--purple); }
+
+.rm-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 0.5rem; padding: 0.9rem 1rem; margin-bottom: 0.35rem;
+  transition: all 0.25s;
+}
+.rm-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+
+.rm-card-title { font-size: 0.88rem; font-weight: 400; margin-bottom: 0.2rem; }
+.rm-card-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
+
+.rm-card .rm-status {
+  display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.45rem;
+  font-family: var(--mono); font-size: 0.52rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.rm-status.live { color: var(--green); }
+.rm-status.live::before { content: ''; width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--green); }
+.rm-status.building { color: var(--accent); }
+.rm-status.building::before { content: ''; width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--accent); }
+.rm-status.planned { color: var(--purple); }
+.rm-status.planned::before { content: ''; width: 0.25rem; height: 0.25rem; border-radius: 50%; background: var(--purple); }
+
+/* ═══ CTA ═══ */
+.cta { padding: 8vw var(--gutter); text-align: center; }
+@media (min-width: 834px) { .cta { padding: 5vw var(--gutter); } }
+.cta-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 300; letter-spacing: -0.03em; margin-bottom: 0.6rem; }
+.cta-sub { font-size: clamp(0.85rem, 1vw, 1rem); color: var(--text-mid); margin-bottom: 1.5rem; }
+
+/* ═══ FOOTER ═══ */
+footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
+.foot { display: flex; align-items: center; justify-content: space-between; }
+@media (max-width: 833px) { .foot { flex-direction: column; gap: 0.6rem; } }
+.foot-links { display: flex; gap: 1rem; }
+.foot-links a {
+  font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted);
+  position: relative; transition: color 0.2s;
+}
+.foot-links a::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 1px;
+  background: var(--accent); transform: scaleX(0); transform-origin: right;
+  transition: transform 0.3s var(--ease-out);
+}
+.foot-links a:hover { color: var(--text); }
+.foot-links a:hover::after { transform: scaleX(1); transform-origin: left; }
+.foot-copy { font-family: var(--mono); font-size: 0.58rem; color: var(--text-muted); }
+
+/* ═══ REVEAL ═══ */
+.rv { opacity: 0; transform: translateY(18px); transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out); }
+.rv.vis { opacity: 1; transform: translateY(0); }
+.d1 { transition-delay: 0.06s; } .d2 { transition-delay: 0.12s; } .d3 { transition-delay: 0.18s; }
+.d4 { transition-delay: 0.24s; } .d5 { transition-delay: 0.30s; }
+</style>
+</head>
+<body>
+
+<div class="noise"></div>
+
+<!-- NAV -->
+<nav class="nav" data-liquid>
+  <div class="nav-glass"></div>
+  <div class="nav-bar">
+    <a href="#hero" class="nav-logo">Logiqical</a>
+    <div class="nav-links">
+      <a href="#modules" class="nav-link">Modules</a>
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#activity" class="nav-link">Activity</a>
+      <a href="#agents" class="nav-link">Agents</a>
+      <a href="#endpoints" class="nav-link">API</a>
+      <a href="#roadmap" class="nav-link">Roadmap</a>
+      <a href="https://github.com/ArenaSocialFi/arena-agent-plugin" target="_blank" class="nav-link">GitHub</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-live"><span class="nav-live-dot"></span> Live</div>
+      <button class="nav-search" aria-label="Search"><i class="hgi-stroke hgi-search-01"></i></button>
+      <div class="nav-burger"><span></span><span></span></div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <canvas class="hero-canvas" id="networkCanvas"></canvas>
+  <div class="hero-brand">LOGIQICAL</div>
+  <div class="hero-content">
+    <div class="hero-label rv">Avalanche C-Chain</div>
+    <h1 class="hero-title rv d1">
+      <span>AI Agents.</span>
+      <span class="hl">On-Chain.</span>
+      <span>Unstoppable.</span>
+    </h1>
+    <p class="hero-desc rv d2">
+      The intelligence layer for <strong>autonomous agents</strong> on Avalanche.
+      Trade tokens, swap on DEX, stake, explore launchpads &mdash; all trustless, all through one API.
+    </p>
+    <div class="hero-btns rv d3">
+      <a href="#activity" class="btn-accent">View Activity <i class="hgi-stroke hgi-arrow-right-01"></i></a>
+      <a href="https://github.com/ArenaSocialFi/arena-agent-plugin" target="_blank" class="btn-outline">GitHub <i class="hgi-stroke hgi-arrow-up-right"></i></a>
+    </div>
+  </div>
+  <div class="hero-ticker">
+    <div class="ticker-track" id="ticker"></div>
+  </div>
+</section>
+
+<!-- INTRO -->
+<section class="intro" id="intro">
+  <div class="slabel rv">What We Built</div>
+  <p class="intro-text rv d1">
+    <span>Logiqical is the infrastructure layer</span>
+    that makes any AI agent a smart trader on Avalanche.
+    <span>Not a sniper. Not a bot.</span> An informed, trustless toolkit
+    with discovery, intelligence, and execution &mdash;
+    <span>built for agents that trade on their own.</span>
+  </p>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="f-grid">
+    <div class="fc rv">
+      <div class="fc-ico"><i class="hgi-stroke hgi-exchange-01"></i></div>
+      <div class="fc-num">01</div>
+      <div class="fc-body">
+        <div class="fc-title">Token Swap</div>
+        <div class="fc-desc">Buy and sell ARENA via LFJ DEX. Quote, build unsigned transactions, broadcast when ready.</div>
+        <div class="fc-live">Live</div>
+      </div>
+    </div>
+    <div class="fc rv d1">
+      <div class="fc-ico"><i class="hgi-stroke hgi-fire"></i></div>
+      <div class="fc-num">02</div>
+      <div class="fc-body">
+        <div class="fc-title">Staking</div>
+        <div class="fc-desc">Stake tokens for rewards. Buy-and-stake in one flow. Unstake and claim anytime.</div>
+        <div class="fc-live">Live</div>
+      </div>
+    </div>
+    <div class="fc rv d2">
+      <div class="fc-ico"><i class="hgi-stroke hgi-rocket"></i></div>
+      <div class="fc-num">03</div>
+      <div class="fc-body">
+        <div class="fc-title">Launchpad Intelligence</div>
+        <div class="fc-desc">Discover new tokens, research creators, track graduation, trade on bonding curves.</div>
+        <div class="fc-live">Live</div>
+      </div>
+    </div>
+    <div class="fc rv d3">
+      <div class="fc-ico"><i class="hgi-stroke hgi-coins-swap"></i></div>
+      <div class="fc-num">04</div>
+      <div class="fc-body">
+        <div class="fc-title">General DEX Swaps</div>
+        <div class="fc-desc">Swap any token on Avalanche via LFJ and Pharaoh DEX. 14+ tokens pre-loaded.</div>
+        <div class="fc-live">Live</div>
+      </div>
+    </div>
+    <div class="fc wide rv">
+      <div class="fc-ico"><i class="hgi-stroke hgi-graduation-scroll"></i></div>
+      <div class="fc-num">05</div>
+      <div class="fc-body">
+        <div class="fc-title">Graduated Token Trading</div>
+        <div class="fc-desc">Tokens that graduate from bonding curves are auto-routed through Pharaoh DEX. Agents never need to know the difference.</div>
+        <div class="fc-live">Live</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODULES -->
+<section class="modules" id="modules">
+  <div class="mod-head rv">
+    <div>
+      <div class="slabel">Modules</div>
+      <div class="mod-title"><span>Five modules.</span><span>One API.</span></div>
+    </div>
+    <div class="mod-sub">Everything an AI agent needs to operate autonomously on Avalanche.</div>
+  </div>
+  <div class="mc-list">
+    <div class="mc rv d1">
+      <div class="mc-ico"><i class="hgi-stroke hgi-exchange-01"></i></div>
+      <div class="mc-body"><div class="mc-name">Token Swap</div><div class="mc-desc">Buy/sell ARENA tokens. Quote and build unsigned transactions.</div><div class="mc-tag">Live</div></div>
+      <div class="mc-arr"><i class="hgi-stroke hgi-arrow-right-01"></i></div>
+    </div>
+    <div class="mc rv d2">
+      <div class="mc-ico"><i class="hgi-stroke hgi-fire"></i></div>
+      <div class="mc-body"><div class="mc-name">Staking</div><div class="mc-desc">Stake tokens, buy-and-stake combo, unstake and claim rewards.</div><div class="mc-tag">Live</div></div>
+      <div class="mc-arr"><i class="hgi-stroke hgi-arrow-right-01"></i></div>
+    </div>
+    <div class="mc rv d3">
+      <div class="mc-ico"><i class="hgi-stroke hgi-rocket"></i></div>
+      <div class="mc-body"><div class="mc-name">Launchpad</div><div class="mc-desc">Token discovery, research, bonding curve trading, portfolio tracking.</div><div class="mc-tag">Live</div></div>
+      <div class="mc-arr"><i class="hgi-stroke hgi-arrow-right-01"></i></div>
+    </div>
+    <div class="mc rv d4">
+      <div class="mc-ico"><i class="hgi-stroke hgi-coins-swap"></i></div>
+      <div class="mc-body"><div class="mc-name">DEX Swaps (LFJ + Pharaoh)</div><div class="mc-desc">Swap any Avalanche token. 14 pre-loaded plus any contract address.</div><div class="mc-tag">Live</div></div>
+      <div class="mc-arr"><i class="hgi-stroke hgi-arrow-right-01"></i></div>
+    </div>
+    <div class="mc rv d5">
+      <div class="mc-ico"><i class="hgi-stroke hgi-graduation-scroll"></i></div>
+      <div class="mc-body"><div class="mc-name">Graduated Trading</div><div class="mc-desc">Auto-routes graduated tokens through Pharaoh DEX. Transparent to agents.</div><div class="mc-tag">Live</div></div>
+      <div class="mc-arr"><i class="hgi-stroke hgi-arrow-right-01"></i></div>
+    </div>
+  </div>
+</section>
+
+<!-- ACTIVITY -->
+<section class="activity" id="activity">
+  <div class="sh">
+    <h2 class="sh-title">Live Activity</h2>
+    <div class="sh-badge">Real-time</div>
+  </div>
+  <div class="feed" id="feed"><div class="feed-empty">Loading activity feed...</div></div>
+</section>
+
+<!-- AGENTS -->
+<section class="agents" id="agents">
+  <div class="sh">
+    <h2 class="sh-title">Agents</h2>
+    <div class="sh-badge" id="agent-count-tag">--</div>
+  </div>
+  <div class="ag-grid" id="agents-grid"><div class="feed-empty">Loading agents...</div></div>
+</section>
+
+<!-- ENDPOINTS -->
+<section class="endpoints" id="endpoints">
+  <div class="sh">
+    <h2 class="sh-title">API</h2>
+    <div class="sh-badge">40+ endpoints</div>
+  </div>
+  <div class="ep-cat">DEX Swaps</div>
+  <div class="ep-rows">
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/dex/build/swap</span><span class="ep-d">Swap any token pair</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/dex/quote</span><span class="ep-d">Quote any pair</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/dex/tokens</span><span class="ep-d">Token registry</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/dex/token-info</span><span class="ep-d">On-chain token info</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/dex/balance</span><span class="ep-d">Token balance</span></div>
+  </div>
+  <div class="ep-cat">Token Swap</div>
+  <div class="ep-rows">
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/build/buy</span><span class="ep-d">Buy ARENA</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/build/sell-arena</span><span class="ep-d">Sell ARENA</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/quote</span><span class="ep-d">AVAX to ARENA</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/quote/sell</span><span class="ep-d">ARENA to AVAX</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/balances</span><span class="ep-d">AVAX + ARENA</span></div>
+  </div>
+  <div class="ep-cat">Staking</div>
+  <div class="ep-rows">
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/build/stake</span><span class="ep-d">Stake tokens</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/build/buy-and-stake</span><span class="ep-d">Buy + stake combo</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/build/unstake</span><span class="ep-d">Unstake + claim</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/stake/info</span><span class="ep-d">Staking status</span></div>
+  </div>
+  <div class="ep-cat">Launchpad</div>
+  <div class="ep-rows">
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/recent</span><span class="ep-d">Latest launches</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/search</span><span class="ep-d">Search tokens</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/graduating</span><span class="ep-d">About to graduate</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/graduated</span><span class="ep-d">Graduated tokens</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/top-volume</span><span class="ep-d">Trending by volume</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/token</span><span class="ep-d">Token deep dive</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/quote</span><span class="ep-d">Bonding curve quote</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/build/buy</span><span class="ep-d">Buy launchpad token</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/build/sell</span><span class="ep-d">Sell launchpad token</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/portfolio</span><span class="ep-d">Agent positions</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/holders</span><span class="ep-d">Holder distribution</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/activity</span><span class="ep-d">Trade history</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/trades</span><span class="ep-d">Global trade feed</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/market-cap</span><span class="ep-d">Market cap data</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/launchpad/overview</span><span class="ep-d">Platform stats</span></div>
+  </div>
+  <div class="ep-cat">System</div>
+  <div class="ep-rows">
+    <div class="ep-r"><span class="ep-m post">POST</span><span class="ep-p">/broadcast</span><span class="ep-d">Send signed tx</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/register</span><span class="ep-d">Get API key</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/agent-instructions</span><span class="ep-d">Agent onboarding</span></div>
+    <div class="ep-r"><span class="ep-m get">GET</span><span class="ep-p">/health</span><span class="ep-d">Health check</span></div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="roadmap" id="roadmap">
+  <div class="sh">
+    <h2 class="sh-title">Roadmap</h2>
+    <div class="sh-badge">What's coming</div>
+  </div>
+  <div class="rm-grid">
+    <div class="rv">
+      <div class="rm-col-label now"><span class="rm-dot"></span> Live Now</div>
+      <div class="rm-card">
+        <div class="rm-card-title">Token Swaps</div>
+        <div class="rm-card-desc">Buy/sell ARENA via LFJ DEX with quote, build, and broadcast.</div>
+        <div class="rm-status live">Live</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Staking</div>
+        <div class="rm-card-desc">Stake, unstake, buy-and-stake combos with reward tracking.</div>
+        <div class="rm-status live">Live</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Launchpad Intelligence</div>
+        <div class="rm-card-desc">Discovery, research, bonding curve trading, portfolio tracking, holder analysis.</div>
+        <div class="rm-status live">Live</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">General DEX Swaps</div>
+        <div class="rm-card-desc">Swap any Avalanche token via LFJ + Pharaoh DEX. 14+ tokens pre-loaded.</div>
+        <div class="rm-status live">Live</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Graduated Token Routing</div>
+        <div class="rm-card-desc">Auto-routes graduated launchpad tokens through Pharaoh DEX. Transparent to agents.</div>
+        <div class="rm-status live">Live</div>
+      </div>
+    </div>
+    <div class="rv d1">
+      <div class="rm-col-label next"><span class="rm-dot"></span> Building Next</div>
+      <div class="rm-card">
+        <div class="rm-card-title">Perps Trading</div>
+        <div class="rm-card-desc">Perpetual futures execution with position management and leverage controls for agents.</div>
+        <div class="rm-status building">In Progress</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Signal Monitoring</div>
+        <div class="rm-card-desc">Real-time alerts for graduation events, volume spikes, and new launches matching agent criteria.</div>
+        <div class="rm-status building">In Progress</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Dedicated Infrastructure</div>
+        <div class="rm-card-desc">Moving to self-hosted infrastructure for higher reliability and zero platform limits.</div>
+        <div class="rm-status building">In Progress</div>
+      </div>
+    </div>
+    <div class="rv d2">
+      <div class="rm-col-label future"><span class="rm-dot"></span> On the Horizon</div>
+      <div class="rm-card">
+        <div class="rm-card-title">Logiqical SDK</div>
+        <div class="rm-card-desc">npm package. Agent launches and instantly knows everything — no prompts needed. Self-configuring.</div>
+        <div class="rm-status planned">Planned</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Self-Improving Agents</div>
+        <div class="rm-card-desc">Agents that learn from their own PnL and market patterns. Get smarter over time.</div>
+        <div class="rm-status planned">Planned</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Multi-Strategy</div>
+        <div class="rm-card-desc">Same agent handles trenches, perps, staking — picks the right play based on market conditions.</div>
+        <div class="rm-status planned">Planned</div>
+      </div>
+      <div class="rm-card">
+        <div class="rm-card-title">Cross-Chain Trading</div>
+        <div class="rm-card-desc">Agents on Solana trade directly on Avalanche and vice versa. One API, any chain, no bridges needed.</div>
+        <div class="rm-status planned">Exploring</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2 class="cta-title rv">Build the next<br>autonomous agent.</h2>
+  <p class="cta-sub rv d1">Register, get your API key, start trading in under 60 seconds.</p>
+  <div class="rv d2">
+    <a href="https://github.com/ArenaSocialFi/arena-agent-plugin" target="_blank" class="btn-accent">Get Started <i class="hgi-stroke hgi-arrow-right-01"></i></a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot">
+    <div class="foot-links">
+      <a href="https://github.com/ArenaSocialFi/arena-agent-plugin" target="_blank">GitHub</a>
+      <a href="https://arenatrade.ai" target="_blank">Arena</a>
+      <a href="/health">Health</a>
+      <a href="/agent-instructions">Docs</a>
+    </div>
+    <div class="foot-copy">Built on Avalanche. Powered by Logiqical.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/liquid-web/liquid-core.min.js"></script>
+<script>
+const BASE = window.location.origin;
+
+/* ── Liquid Glass on Nav ── */
+try { new LiquidWeb('[data-liquid]', { scale: 18, blur: 3, saturation: 140 }); } catch(e) {}
+
+/* ── Network Canvas (hero background) ── */
+(function() {
+  const c = document.getElementById('networkCanvas');
+  const ctx = c.getContext('2d');
+  let w, h, pts = [], mouse = { x: -999, y: -999 };
+  const N = 60, DIST = 150;
+
+  function resize() { w = c.width = c.offsetWidth; h = c.height = c.offsetHeight; }
+  resize(); window.addEventListener('resize', resize);
+
+  for (let i = 0; i < N; i++) {
+    pts.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 1.5 + 0.5
+    });
+  }
+
+  c.addEventListener('mousemove', e => { const r = c.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; });
+  c.addEventListener('mouseleave', () => { mouse.x = -999; mouse.y = -999; });
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < N; i++) {
+      const p = pts[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+
+      // Mouse repulsion
+      const dx = p.x - mouse.x, dy = p.y - mouse.y;
+      const dm = Math.sqrt(dx * dx + dy * dy);
+      if (dm < 120) { p.x += dx / dm * 1.5; p.y += dy / dm * 1.5; }
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,107,0,0.25)';
+      ctx.fill();
+
+      for (let j = i + 1; j < N; j++) {
+        const q = pts[j];
+        const d = Math.hypot(p.x - q.x, p.y - q.y);
+        if (d < DIST) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = `rgba(255,107,0,${0.06 * (1 - d / DIST)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── Ticker ── */
+(function() {
+  const items = [
+    { l: 'Agents', v: '--', c: 't-accent', id: 'tk-agents' },
+    { l: 'Trades Built', v: '--', c: 't-green', id: 'tk-trades' },
+    { l: 'Endpoints', v: '40+', c: 't-val' },
+    { l: 'Tokens', v: '14+', c: 't-val' },
+    { l: 'Modules', v: '5', c: 't-val' },
+    { l: 'Chain', v: 'Avalanche C-Chain', c: 't-val' },
+    { l: 'Status', v: 'LIVE', c: 't-green' },
+    { l: 'DEX', v: 'LFJ + Pharaoh', c: 't-val' },
+  ];
+  const html = items.map(i =>
+    `<div class="ticker-item">${i.l} <span class="${i.c}"${i.id ? ` id="${i.id}"` : ''}>${i.v}</span></div>`
+  ).join('');
+  document.getElementById('ticker').innerHTML = html + html; // duplicate for infinite loop
+})();
+
+/* ── Scroll Reveal ── */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('vis'); obs.unobserve(e.target); } });
+}, { threshold: 0.07, rootMargin: '0px 0px -15px 0px' });
+document.querySelectorAll('.rv').forEach(el => obs.observe(el));
+
+/* ── Smooth Scroll ── */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+/* ── Mobile burger toggle ── */
+document.querySelector('.nav-burger').addEventListener('click', function() {
+  const links = document.querySelector('.nav-links');
+  links.classList.toggle('open');
+  this.classList.toggle('open');
+});
+
+/* ── Active nav link on scroll ── */
+const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
+const sections = document.querySelectorAll('section[id]');
+window.addEventListener('scroll', () => {
+  const y = window.scrollY + 120;
+  sections.forEach(s => {
+    if (s.offsetTop <= y && s.offsetTop + s.offsetHeight > y) {
+      navLinks.forEach(l => {
+        l.classList.toggle('active', l.getAttribute('href') === '#' + s.id);
+      });
+    }
+  });
+}, { passive: true });
+
+/* ── Data ── */
+async function loadStats() {
+  try {
+    const r = await fetch(`${BASE}/dashboard/stats`);
+    const d = await r.json();
+    const agents = d.agents || '0', trades = d.trades || '0';
+    const ta = document.getElementById('tk-agents'); if (ta) ta.textContent = agents;
+    const tt = document.getElementById('tk-trades'); if (tt) tt.textContent = trades;
+  } catch {}
+}
+
+async function loadActivity() {
+  try {
+    const r = await fetch(`${BASE}/dashboard/activity?count=20`);
+    const d = await r.json();
+    const el = document.getElementById('feed');
+    if (!d.trades || d.trades.length === 0) {
+      el.innerHTML = '<div class="feed-empty">No agent activity yet. Trades appear here in real-time.</div>';
+      return;
+    }
+    el.innerHTML = d.trades.map(t => {
+      const dt = new Date(t.timestamp);
+      const time = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const date = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `<div class="fr">
+        <div class="fr-time">${date} ${time}</div>
+        <div class="fr-tag ${t.module}">${t.module}</div>
+        <div class="fr-detail">${esc(t.details)}</div>
+        <div class="fr-wallet">${t.wallet}</div>
+      </div>`;
+    }).join('');
+  } catch {
+    document.getElementById('feed').innerHTML = '<div class="feed-empty">Could not load activity feed.</div>';
+  }
+}
+
+async function loadAgents() {
+  try {
+    const r = await fetch(`${BASE}/dashboard/agents`);
+    const d = await r.json();
+    document.getElementById('agent-count-tag').textContent = `${d.count} registered`;
+    const el = document.getElementById('agents-grid');
+    if (!d.agents || d.agents.length === 0) {
+      el.innerHTML = '<div class="feed-empty">No agents registered yet.</div>';
+      return;
+    }
+    el.innerHTML = d.agents.map(a => {
+      const j = new Date(a.joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `<div class="ag">
+        <div class="ag-name"><span class="ag-dot"></span>${esc(a.name)}</div>
+        ${a.wallet ? `<div class="ag-addr">${a.wallet}</div>` : ''}
+        <div class="ag-date">Joined ${j}</div>
+      </div>`;
+    }).join('');
+  } catch {
+    document.getElementById('agents-grid').innerHTML = '<div class="feed-empty">Could not load agents.</div>';
+  }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+loadStats(); loadActivity(); loadAgents();
+setInterval(() => { loadStats(); loadActivity(); }, 30000);
+</script>
+</body>
+</html>

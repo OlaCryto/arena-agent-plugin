@@ -38,6 +38,7 @@ const express_1 = require("express");
 const positions_1 = require("../data/positions");
 const arenaApi = __importStar(require("../data/arena-api"));
 const middleware_1 = require("./middleware");
+const tradelog_1 = require("../data/tradelog");
 function formatToken(t) {
     return {
         tokenId: t.group_id,
@@ -369,6 +370,7 @@ function launchpadRoutes(launchpad) {
                 return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?avax= required" });
             const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
             (0, positions_1.trackPosition)(wallet, Number(tokenId));
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "launchpad-buy", `Buy tokenId ${tokenId} with ${avax} AVAX`, "launchpad");
             // Graduated tokens return a DexModule response
             if ("graduated" in result) {
                 const { graduated, transactions, summary } = result;
@@ -393,6 +395,7 @@ function launchpadRoutes(launchpad) {
             const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
             if (amount === "max")
                 (0, positions_1.removePosition)(wallet, Number(tokenId));
+            (0, tradelog_1.logTrade)(req.get("X-API-Key") || "unknown", wallet, "launchpad-sell", `Sell tokenId ${tokenId} amount ${amount}`, "launchpad");
             // Graduated tokens return a DexModule response
             if ("graduated" in result) {
                 const { graduated, transactions, summary } = result;

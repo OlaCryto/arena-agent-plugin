@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { DexModule } from "../dex";
 import { requireApiKey } from "./middleware";
+import { logTrade } from "../data/tradelog";
 
 export function dexRoutes(dex: DexModule): Router {
   const router = Router();
@@ -72,6 +73,7 @@ export function dexRoutes(dex: DexModule): Router {
         });
       }
       const result = await dex.buildSwapTx(wallet, from, to, amount, slippage ? Number(slippage) : undefined);
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "dex-swap", `${amount} ${from} → ${to}`, "dex");
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
