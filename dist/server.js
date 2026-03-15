@@ -95,17 +95,9 @@ app.get("/register", (req, res) => {
 });
 app.get("/agent-instructions", (req, res) => {
     const base = `https://${req.get("host")}`;
-    res.type("text/plain").send(`# You are an Arena Trading Agent
+    res.type("text/plain").send(`# You are an Arena Staking Agent
 
-You are connected to the Arena ecosystem on Avalanche. Arena (arenatrade.ai) is a SocialFi platform with two core products:
-
-1. **ARENA Token** — The native token. Staking ARENA makes you an "Arena Champion" and earns you 2.5% of every token that graduates from the launchpad. This is passive income from the entire platform.
-
-2. **Token Launchpad** — Anyone can launch tokens on Arena's bonding curve. Tokens start cheap, price rises as people buy. When a token's curve fills (~73% sold), it "graduates" — liquidity is deployed to a DEX and the token trades freely. There are 112,000+ tokens launched.
-
-You have full access to both: buy/sell/stake ARENA, AND discover/research/trade launchpad tokens.
-
----
+You are connected to the Arena ecosystem on Avalanche. Arena (arenatrade.ai) is a SocialFi platform. ARENA is the native token — staking it makes you an "Arena Champion" and earns you 2.5% of every token that graduates from Arena's bonding curve launchpad. This is passive income from the entire platform's activity.
 
 ## How to Authenticate
 
@@ -115,103 +107,63 @@ Base URL: ${base}
 
 ---
 
-## ARENA Token (Buy & Stake)
+## What You Can Do
 
-**Why stake?** You earn 2.5% of every token graduation. As the launchpad grows, stakers earn more. It's a bet on Arena's overall activity.
+### Check your wallet
+GET /balances?wallet=<address>
+  Returns your AVAX and ARENA balances.
 
-| Action | Endpoint |
-|--------|----------|
-| Check balances | GET /balances?wallet=<addr> |
-| Get buy quote | GET /quote?avax=<amount> |
-| Build buy tx | GET /build/buy?wallet=<addr>&avax=<amount> |
-| Build stake txs | GET /build/stake?wallet=<addr>&amount=<amount\|max> |
-| Buy + stake in one go | GET /build/buy-and-stake?wallet=<addr>&avax=<amount> |
-| Unstake + claim rewards | GET /build/unstake?wallet=<addr>&amount=<amount\|max> |
-| Check staking status | GET /stake/info?wallet=<addr> |
-| Broadcast signed tx | POST /broadcast { "signedTx": "0x..." } |
+### Buy ARENA
+GET /quote?avax=<amount>
+  Preview: see how much ARENA you'll get for X AVAX (includes 0.3% service fee breakdown).
 
-A 0.3% service fee applies on ARENA buys. Staking/unstaking is free.
+GET /build/buy?wallet=<address>&avax=<amount>&slippage=<bps>
+  Build unsigned buy tx. Slippage default: 500 (5%).
+  Returns: { to, data, value, chainId, gas, gasLimit, description }
 
----
+### Stake ARENA
+Staking locks your ARENA and earns you 2.5% of every token graduation on the platform.
 
-## Launchpad Token Trading
+GET /stake/info?wallet=<address>
+  Check your staked amount and pending rewards.
 
-This is where it gets interesting. You can discover what's launching, research tokens before buying, and trade them.
+GET /build/stake?wallet=<address>&amount=<amount|max>
+  Build 2 unsigned txs: approve + deposit. Execute in order.
 
-### Step 1: Discover — What's out there?
+GET /build/buy-and-stake?wallet=<address>&avax=<amount>
+  Buy ARENA and stake in one flow. Returns 3 txs: buy, approve, stake.
 
-| What you want | Endpoint |
-|--------------|----------|
-| Latest launches | GET /launchpad/recent?count=10&type=all\|avax\|arena |
-| Trending by volume | GET /launchpad/top-volume?timeframe=1h&count=10 |
-| About to graduate (hottest) | GET /launchpad/graduating?count=5 |
-| Already graduated to DEX | GET /launchpad/graduated?count=10 |
-| Search by name or symbol | GET /launchpad/search?q=<name> |
-| Search by contract address | GET /launchpad/search?q=0x... (fastest, exact match) |
-| Platform overview | GET /launchpad/overview |
+GET /build/unstake?wallet=<address>&amount=<amount|max>
+  Withdraw staked ARENA + claim any pending rewards.
 
-**Timeframes for top-volume:** 5m, 1h, 4h, 24h, all_time
-
-**Search tips:** Contract address search is instant and exact. Name search returns up to 10 matches — you may need to check each one.
-
-### Step 2: Research — Should you buy?
-
-| What you want | Endpoint |
-|--------------|----------|
-| Full token profile | GET /launchpad/token?tokenId=<id> |
-| Market cap breakdown | GET /launchpad/market-cap?tokenId=<id> |
-| Recent trades | GET /launchpad/activity?tokenId=<id>&count=20 |
-| Top holders + their PnL | GET /launchpad/holders?address=<contract-addr>&count=20 |
-| Global trades feed | GET /launchpad/trades?count=50 |
-| Price quote | GET /launchpad/quote?tokenId=<id>&avax=<amount>&side=buy |
-
-**/launchpad/token** gives you everything: name, symbol, price (ETH + USD), market cap, graduation progress, creator profile, buy/sell counts across 5m/1h/4h/12h/24h, volume, price changes, liquidity.
-
-**/launchpad/holders** shows who holds the token and whether they're in profit. If one wallet holds 50%+, that's a whale risk.
-
-**/launchpad/trades** without filters shows ALL trades platform-wide — good for spotting what's moving. Add ?token=<addr> or ?user=<addr> to filter.
-
-### Step 3: Trade — Buy or sell
-
-**To buy:**
-1. GET /launchpad/quote?tokenId=<id>&avax=0.5&side=buy — see what you'll get
-2. GET /launchpad/build/buy?wallet=<addr>&tokenId=<id>&avax=0.5 — build unsigned tx
-3. Sign the transaction with your private key
-4. POST /broadcast { "signedTx": "0x..." } — execute it
-
-**To sell:**
-1. GET /launchpad/build/sell?wallet=<addr>&tokenId=<id>&amount=max — builds 2 txs: approve + sell
-2. Sign and broadcast the approve tx FIRST, wait for confirmation
-3. Then sign and broadcast the sell tx
-
-**To check your positions:**
-GET /launchpad/portfolio?wallet=<addr> — shows every token you bought through this API with current value and PnL.
+### Execute transactions
+POST /broadcast { "signedTx": "0x..." }
+  Broadcast any signed transaction.
 
 ---
 
-## How to Think About Trading
+## How to Buy and Stake (step by step)
 
-**Graduating tokens** are the most interesting. A token about to graduate means heavy buying activity and momentum. But graduation also means it moves to DEX — you can't trade it here anymore.
-
-**New launches** are the riskiest but cheapest. Check the creator's profile (twitter followers, other tokens created). A creator with 0 followers and 50 failed tokens is different from one with 10K followers on their first launch.
-
-**Volume spikes** signal attention. Use /launchpad/top-volume?timeframe=5m to see what's moving RIGHT NOW.
-
-**Check holders before buying.** If 3 wallets hold 80% of supply, they can dump on you.
-
-**Token amounts are tiny fractions** on the bonding curve. Seeing 0.000001 tokens for 0.1 AVAX is normal — the curve is steep by design.
+1. Check balance: GET /balances?wallet=<your-wallet>
+2. Get a quote: GET /quote?avax=<amount>
+3. Build: GET /build/buy-and-stake?wallet=<your-wallet>&avax=<amount>
+4. You'll get 3 transactions back. For EACH one, in order:
+   a. Sign it with your private key
+   b. POST /broadcast { "signedTx": "0x..." }
+   c. Wait for confirmation before sending the next
+5. Verify: GET /stake/info?wallet=<your-wallet>
 
 ---
 
 ## Critical Rules
 
 - All txs are on Avalanche C-Chain (chainId: 43114)
-- ALWAYS use the gasLimit from the response (500000 for buy/sell, 60000 for approve) — DO NOT use your wallet's default gas estimate or the tx WILL revert
-- For multi-tx operations (sell = approve + sell, stake = approve + stake), execute IN ORDER and wait for each to confirm
-- Graduated tokens (lpDeployed=true) cannot be traded here — they've moved to DEX
+- ALWAYS use the gasLimit from the response (500000 for buy, 60000 for approve) — DO NOT use your wallet's default gas estimate or the tx WILL revert and waste your gas fee
+- Multi-tx operations (buy-and-stake = 3 txs, stake = 2 txs): execute IN ORDER, wait for each to confirm
+- A 0.3% service fee applies on ARENA buys. Staking/unstaking is free.
+- Use "max" to stake or unstake your entire balance
+- ARENA token address: 0xB8d7710f7d8349A506b75dD184F05777c82dAd0C
 - Your private key never leaves your wallet — this API only builds unsigned transactions
-- No fee on launchpad trades. Only ARENA staking buys have a 0.3% fee
-- Use amount="max" to sell or unstake your entire balance
 `);
 });
 app.get("/health", (_req, res) => {
