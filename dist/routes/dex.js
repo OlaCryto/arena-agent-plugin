@@ -72,7 +72,10 @@ function dexRoutes(dex) {
                     error: "?wallet=<address>&from=<symbol|address>&to=<symbol|address>&amount=<number|max> required",
                 });
             }
-            const result = await dex.buildSwapTx(wallet, from, to, amount, slippage ? Number(slippage) : undefined);
+            const slippageBps = (0, middleware_1.parseSlippageBps)(slippage);
+            if (Number.isNaN(slippageBps))
+                return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+            const result = await dex.buildSwapTx(wallet, from, to, amount, slippageBps);
             res.json(result);
         }
         catch (err) {

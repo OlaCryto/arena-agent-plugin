@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { LaunchpadModule } from "../launchpad";
 import { trackPosition, removePosition, getPositions } from "../data/positions";
 import * as arenaApi from "../data/arena-api";
-import { requireApiKey } from "./middleware";
+import { parseSlippageBps, requireApiKey } from "./middleware";
 
 function formatToken(t: arenaApi.ArenaToken) {
   return {
@@ -326,7 +326,9 @@ export function launchpadRoutes(launchpad: LaunchpadModule): Router {
       const avax = req.query.avax as string;
       const slippage = req.query.slippage as string;
       if (!wallet || !tokenId || !avax) return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?avax= required" });
-      const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
+      const slippageBps = parseSlippageBps(slippage);
+      if (Number.isNaN(slippageBps)) return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+      const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippageBps);
       trackPosition(wallet, Number(tokenId));
 
       // Graduated tokens return a DexModule response
@@ -348,7 +350,9 @@ export function launchpadRoutes(launchpad: LaunchpadModule): Router {
       const amount = req.query.amount as string;
       const slippage = req.query.slippage as string;
       if (!wallet || !tokenId || !amount) return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?amount= required" });
-      const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
+      const slippageBps = parseSlippageBps(slippage);
+      if (Number.isNaN(slippageBps)) return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+      const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippageBps);
       if (amount === "max") removePosition(wallet, Number(tokenId));
 
       // Graduated tokens return a DexModule response

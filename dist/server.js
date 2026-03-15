@@ -21,6 +21,7 @@ const instructions_1 = require("./routes/instructions");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 const PORT = parseInt(process.env.PORT || "3000");
+const isAdminConfigured = Boolean(process.env.ADMIN_SECRET);
 // Create shared provider and modules
 const provider = (0, provider_1.createProvider)();
 const swap = new swap_1.SwapModule(provider);
@@ -54,5 +55,8 @@ app.listen(PORT, () => {
     console.log(`Arena Agent Plugin running on port ${PORT}`);
     console.log(`Fee: 0.3% on buys via ArenaRouter`);
     console.log(`Router: ${swap.routerAddress || "NOT SET — deploy contract and set ARENA_ROUTER env var"}`);
+    if (!isAdminConfigured) {
+        console.warn("Admin routes are disabled until ADMIN_SECRET is configured.");
+    }
 });
 //# sourceMappingURL=server.js.map

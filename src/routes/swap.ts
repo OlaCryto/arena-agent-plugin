@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { SwapModule } from "../swap";
 import { broadcast } from "../core/provider";
 import type { ethers } from "ethers";
-import { requireApiKey } from "./middleware";
+import { parseSlippageBps, requireApiKey } from "./middleware";
 
 export function swapRoutes(swap: SwapModule, provider: ethers.JsonRpcProvider): Router {
   const router = Router();
@@ -46,7 +46,9 @@ export function swapRoutes(swap: SwapModule, provider: ethers.JsonRpcProvider): 
       const avax = req.query.avax as string;
       const slippage = req.query.slippage as string;
       if (!wallet || !avax) return res.status(400).json({ error: "?wallet= and ?avax= required" });
-      const tx = await swap.buildBuyTx(wallet, avax, slippage ? Number(slippage) : undefined);
+      const slippageBps = parseSlippageBps(slippage);
+      if (Number.isNaN(slippageBps)) return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+      const tx = await swap.buildBuyTx(wallet, avax, slippageBps);
       res.json(tx);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -59,7 +61,9 @@ export function swapRoutes(swap: SwapModule, provider: ethers.JsonRpcProvider): 
       const amount = req.query.amount as string;
       const slippage = req.query.slippage as string;
       if (!wallet || !amount) return res.status(400).json({ error: "?wallet= and ?amount= required (use 'max' to sell all)" });
-      const txs = await swap.buildSellArenaTx(wallet, amount, slippage ? Number(slippage) : undefined);
+      const slippageBps = parseSlippageBps(slippage);
+      if (Number.isNaN(slippageBps)) return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+      const txs = await swap.buildSellArenaTx(wallet, amount, slippageBps);
       res.json({ transactions: txs });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

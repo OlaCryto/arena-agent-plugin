@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { DexModule } from "../dex";
-import { requireApiKey } from "./middleware";
+import { parseSlippageBps, requireApiKey } from "./middleware";
 
 export function dexRoutes(dex: DexModule): Router {
   const router = Router();
@@ -71,7 +71,9 @@ export function dexRoutes(dex: DexModule): Router {
           error: "?wallet=<address>&from=<symbol|address>&to=<symbol|address>&amount=<number|max> required",
         });
       }
-      const result = await dex.buildSwapTx(wallet, from, to, amount, slippage ? Number(slippage) : undefined);
+      const slippageBps = parseSlippageBps(slippage);
+      if (Number.isNaN(slippageBps)) return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+      const result = await dex.buildSwapTx(wallet, from, to, amount, slippageBps);
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message });

@@ -49,7 +49,10 @@ function swapRoutes(swap, provider) {
             const slippage = req.query.slippage;
             if (!wallet || !avax)
                 return res.status(400).json({ error: "?wallet= and ?avax= required" });
-            const tx = await swap.buildBuyTx(wallet, avax, slippage ? Number(slippage) : undefined);
+            const slippageBps = (0, middleware_1.parseSlippageBps)(slippage);
+            if (Number.isNaN(slippageBps))
+                return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+            const tx = await swap.buildBuyTx(wallet, avax, slippageBps);
             res.json(tx);
         }
         catch (err) {
@@ -63,7 +66,10 @@ function swapRoutes(swap, provider) {
             const slippage = req.query.slippage;
             if (!wallet || !amount)
                 return res.status(400).json({ error: "?wallet= and ?amount= required (use 'max' to sell all)" });
-            const txs = await swap.buildSellArenaTx(wallet, amount, slippage ? Number(slippage) : undefined);
+            const slippageBps = (0, middleware_1.parseSlippageBps)(slippage);
+            if (Number.isNaN(slippageBps))
+                return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+            const txs = await swap.buildSellArenaTx(wallet, amount, slippageBps);
             res.json({ transactions: txs });
         }
         catch (err) {

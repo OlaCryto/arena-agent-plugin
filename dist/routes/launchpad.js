@@ -367,7 +367,10 @@ function launchpadRoutes(launchpad) {
             const slippage = req.query.slippage;
             if (!wallet || !tokenId || !avax)
                 return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?avax= required" });
-            const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
+            const slippageBps = (0, middleware_1.parseSlippageBps)(slippage);
+            if (Number.isNaN(slippageBps))
+                return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+            const result = await launchpad.buildLaunchpadBuyTx(wallet, tokenId, avax, slippageBps);
             (0, positions_1.trackPosition)(wallet, Number(tokenId));
             // Graduated tokens return a DexModule response
             if ("graduated" in result) {
@@ -390,7 +393,10 @@ function launchpadRoutes(launchpad) {
             const slippage = req.query.slippage;
             if (!wallet || !tokenId || !amount)
                 return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?amount= required" });
-            const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
+            const slippageBps = (0, middleware_1.parseSlippageBps)(slippage);
+            if (Number.isNaN(slippageBps))
+                return res.status(400).json({ error: "?slippage= must be an integer between 1 and 5000 (bps)" });
+            const result = await launchpad.buildLaunchpadSellTx(wallet, tokenId, amount, slippageBps);
             if (amount === "max")
                 (0, positions_1.removePosition)(wallet, Number(tokenId));
             // Graduated tokens return a DexModule response
