@@ -162,7 +162,7 @@ export class TxBuilder {
     return {
       to: ethers.getAddress(ARENA_ROUTER),
       data,
-      value: amountIn.toString(),
+      value: ethers.toBeHex(amountIn),
       chainId: 43114,
       gas: "500000",
       gasLimit: "500000",
@@ -825,7 +825,7 @@ export class TxBuilder {
       return {
         to: ethers.getAddress(LAUNCH_CONTRACT),
         data,
-        value: avaxWei.toString(),
+        value: ethers.toBeHex(avaxWei),
         chainId: 43114,
         gas: "500000",
         gasLimit: "500000",
@@ -839,7 +839,7 @@ export class TxBuilder {
       return {
         to: ethers.getAddress(AVAX_HELPER),
         data,
-        value: avaxWei.toString(),
+        value: ethers.toBeHex(avaxWei),
         chainId: 43114,
         gas: "500000",
         gasLimit: "500000",
