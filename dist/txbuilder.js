@@ -188,6 +188,8 @@ class TxBuilder {
             data,
             value: "0",
             chainId: 43114,
+            gas: "60000",
+            gasLimit: "60000",
             description: `Approve ${ethers_1.ethers.formatUnits(approveAmount, decimals)} ARENA for staking`,
         };
     }
@@ -210,6 +212,8 @@ class TxBuilder {
             data,
             value: "0",
             chainId: 43114,
+            gas: "300000",
+            gasLimit: "300000",
             description: `Stake ${ethers_1.ethers.formatUnits(stakeAmount, decimals)} ARENA`,
         };
     }
@@ -234,6 +238,8 @@ class TxBuilder {
             data,
             value: "0",
             chainId: 43114,
+            gas: "300000",
+            gasLimit: "300000",
             description: `Unstake ${ethers_1.ethers.formatUnits(withdrawAmount, decimals)} ARENA`,
         };
     }
