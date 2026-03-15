@@ -33,7 +33,7 @@ class TxBuilder {
     get routerAddress() {
         return ARENA_ROUTER;
     }
-    /** Get a quote: how much ARENA for a given AVAX amount */
+    /** Get a quote: how much ARENA for a given AVAX amount (buy) */
     async getQuote(avaxAmount) {
         const amountIn = ethers_1.ethers.parseEther(avaxAmount);
         const fee = (amountIn * 30n) / 10000n; // 0.3%
@@ -46,6 +46,18 @@ class TxBuilder {
             arenaOut: ethers_1.ethers.formatUnits(arenaOut, decimals),
             fee: ethers_1.ethers.formatEther(fee),
             netAvax: ethers_1.ethers.formatEther(netAmount),
+        };
+    }
+    /** Get a sell quote: how much AVAX for a given ARENA amount */
+    async getSellQuote(arenaAmount) {
+        const decimals = await this.arenaToken.decimals();
+        const amountIn = ethers_1.ethers.parseUnits(arenaAmount, decimals);
+        const route = [constants_1.ARENA_TOKEN, constants_1.WAVAX];
+        const quote = await this.lbQuoter.findBestPathFromAmountIn(route, amountIn);
+        const avaxOut = quote.amounts[quote.amounts.length - 1];
+        return {
+            avaxOut: ethers_1.ethers.formatEther(avaxOut),
+            arenaIn: arenaAmount,
         };
     }
     /** Get wallet balances */
@@ -101,6 +113,61 @@ class TxBuilder {
             gasLimit: "500000",
             description: `Buy ARENA with ${avaxAmount} AVAX (0.3% fee: ${ethers_1.ethers.formatEther(fee)} AVAX). IMPORTANT: Use gasLimit 500000 — default gas estimates are too low for DEX swaps.`,
         };
+    }
+    /**
+     * Build unsigned txs to sell ARENA for AVAX via LFJ DEX: [approve, swap]
+     */
+    async buildSellArenaTx(wallet, arenaAmount, slippageBps = constants_1.DEFAULT_SLIPPAGE_BPS) {
+        const decimals = await this.arenaToken.decimals();
+        let sellAmount;
+        if (arenaAmount === "max") {
+            sellAmount = await this.arenaToken.balanceOf(wallet);
+            if (sellAmount === 0n)
+                throw new Error("No ARENA balance to sell");
+        }
+        else {
+            sellAmount = ethers_1.ethers.parseUnits(arenaAmount, decimals);
+        }
+        // Get quote for ARENA → AVAX
+        const route = [constants_1.ARENA_TOKEN, constants_1.WAVAX];
+        const quote = await this.lbQuoter.findBestPathFromAmountIn(route, sellAmount);
+        const expectedOut = quote.amounts[quote.amounts.length - 1];
+        const amountOutMin = expectedOut - (expectedOut * BigInt(slippageBps)) / 10000n;
+        const deadline = Math.floor(Date.now() / 1000) + 3600;
+        const path = {
+            pairBinSteps: [...quote.binSteps].map((b) => b.toString()),
+            versions: [...quote.versions].map((v) => Number(v)),
+            tokenPath: [...route],
+        };
+        // Tx 1: Approve ARENA to LB Router
+        const approveIface = new ethers_1.ethers.Interface(constants_1.ERC20_ABI);
+        const approveData = approveIface.encodeFunctionData("approve", [
+            ethers_1.ethers.getAddress(constants_1.LB_ROUTER), sellAmount,
+        ]);
+        const approveTx = {
+            to: ethers_1.ethers.getAddress(constants_1.ARENA_TOKEN),
+            data: approveData,
+            value: "0",
+            chainId: 43114,
+            gas: "60000",
+            gasLimit: "60000",
+            description: `Approve ${ethers_1.ethers.formatUnits(sellAmount, decimals)} ARENA for swap`,
+        };
+        // Tx 2: Swap ARENA → AVAX via LFJ
+        const swapIface = new ethers_1.ethers.Interface(constants_1.LB_ROUTER_ABI);
+        const swapData = swapIface.encodeFunctionData("swapExactTokensForNATIVE", [
+            sellAmount, amountOutMin, path, wallet, deadline,
+        ]);
+        const swapTx = {
+            to: ethers_1.ethers.getAddress(constants_1.LB_ROUTER),
+            data: swapData,
+            value: "0",
+            chainId: 43114,
+            gas: "500000",
+            gasLimit: "500000",
+            description: `Sell ${ethers_1.ethers.formatUnits(sellAmount, decimals)} ARENA for ~${ethers_1.ethers.formatEther(expectedOut)} AVAX`,
+        };
+        return [approveTx, swapTx];
     }
     /**
      * Build unsigned tx to approve ARENA for staking.

@@ -7,8 +7,10 @@ import {
   WAVAX,
   ARENA_STAKING,
   LB_QUOTER,
+  LB_ROUTER,
   ERC20_ABI,
   LB_QUOTER_ABI,
+  LB_ROUTER_ABI,
   ARENA_STAKING_ABI,
   DEFAULT_SLIPPAGE_BPS,
   RPC_URL,
@@ -69,7 +71,7 @@ export class TxBuilder {
     return ARENA_ROUTER;
   }
 
-  /** Get a quote: how much ARENA for a given AVAX amount */
+  /** Get a quote: how much ARENA for a given AVAX amount (buy) */
   async getQuote(avaxAmount: string): Promise<{ arenaOut: string; fee: string; netAvax: string }> {
     const amountIn = ethers.parseEther(avaxAmount);
     const fee = (amountIn * 30n) / 10000n; // 0.3%
@@ -84,6 +86,21 @@ export class TxBuilder {
       arenaOut: ethers.formatUnits(arenaOut, decimals),
       fee: ethers.formatEther(fee),
       netAvax: ethers.formatEther(netAmount),
+    };
+  }
+
+  /** Get a sell quote: how much AVAX for a given ARENA amount */
+  async getSellQuote(arenaAmount: string): Promise<{ avaxOut: string; arenaIn: string }> {
+    const decimals = await this.arenaToken.decimals();
+    const amountIn = ethers.parseUnits(arenaAmount, decimals);
+
+    const route = [ARENA_TOKEN, WAVAX];
+    const quote = await this.lbQuoter.findBestPathFromAmountIn(route, amountIn);
+    const avaxOut = quote.amounts[quote.amounts.length - 1];
+
+    return {
+      avaxOut: ethers.formatEther(avaxOut),
+      arenaIn: arenaAmount,
     };
   }
 
@@ -151,6 +168,71 @@ export class TxBuilder {
       gasLimit: "500000",
       description: `Buy ARENA with ${avaxAmount} AVAX (0.3% fee: ${ethers.formatEther(fee)} AVAX). IMPORTANT: Use gasLimit 500000 — default gas estimates are too low for DEX swaps.`,
     };
+  }
+
+  /**
+   * Build unsigned txs to sell ARENA for AVAX via LFJ DEX: [approve, swap]
+   */
+  async buildSellArenaTx(
+    wallet: string,
+    arenaAmount: string,
+    slippageBps = DEFAULT_SLIPPAGE_BPS
+  ): Promise<UnsignedTx[]> {
+    const decimals = await this.arenaToken.decimals();
+    let sellAmount: bigint;
+
+    if (arenaAmount === "max") {
+      sellAmount = await this.arenaToken.balanceOf(wallet);
+      if (sellAmount === 0n) throw new Error("No ARENA balance to sell");
+    } else {
+      sellAmount = ethers.parseUnits(arenaAmount, decimals);
+    }
+
+    // Get quote for ARENA → AVAX
+    const route = [ARENA_TOKEN, WAVAX];
+    const quote = await this.lbQuoter.findBestPathFromAmountIn(route, sellAmount);
+    const expectedOut: bigint = quote.amounts[quote.amounts.length - 1];
+    const amountOutMin = expectedOut - (expectedOut * BigInt(slippageBps)) / 10000n;
+
+    const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+    const path = {
+      pairBinSteps: [...quote.binSteps].map((b: any) => b.toString()),
+      versions: [...quote.versions].map((v: any) => Number(v)),
+      tokenPath: [...route],
+    };
+
+    // Tx 1: Approve ARENA to LB Router
+    const approveIface = new ethers.Interface(ERC20_ABI);
+    const approveData = approveIface.encodeFunctionData("approve", [
+      ethers.getAddress(LB_ROUTER), sellAmount,
+    ]);
+    const approveTx: UnsignedTx = {
+      to: ethers.getAddress(ARENA_TOKEN),
+      data: approveData,
+      value: "0",
+      chainId: 43114,
+      gas: "60000",
+      gasLimit: "60000",
+      description: `Approve ${ethers.formatUnits(sellAmount, decimals)} ARENA for swap`,
+    };
+
+    // Tx 2: Swap ARENA → AVAX via LFJ
+    const swapIface = new ethers.Interface(LB_ROUTER_ABI);
+    const swapData = swapIface.encodeFunctionData("swapExactTokensForNATIVE", [
+      sellAmount, amountOutMin, path, wallet, deadline,
+    ]);
+    const swapTx: UnsignedTx = {
+      to: ethers.getAddress(LB_ROUTER),
+      data: swapData,
+      value: "0",
+      chainId: 43114,
+      gas: "500000",
+      gasLimit: "500000",
+      description: `Sell ${ethers.formatUnits(sellAmount, decimals)} ARENA for ~${ethers.formatEther(expectedOut)} AVAX`,
+    };
+
+    return [approveTx, swapTx];
   }
 
   /**

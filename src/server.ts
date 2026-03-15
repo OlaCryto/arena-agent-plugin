@@ -252,6 +252,110 @@ app.post("/broadcast", requireApiKey, async (req, res) => {
   }
 });
 
+// === ARENA SWAP ENDPOINTS ===
+
+// Sell quote: how much AVAX for a given ARENA amount
+app.get("/quote/sell", requireApiKey, async (req, res) => {
+  try {
+    const arena = req.query.arena as string;
+    if (!arena) return res.status(400).json({ error: "?arena=<amount> required" });
+    const result = await builder.getSellQuote(arena);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Build sell ARENA tx: approve + swap via LFJ DEX
+app.get("/build/sell-arena", requireApiKey, async (req, res) => {
+  try {
+    const wallet = req.query.wallet as string;
+    const amount = req.query.amount as string;
+    const slippage = req.query.slippage as string;
+    if (!wallet || !amount) return res.status(400).json({ error: "?wallet= and ?amount= required (use 'max' to sell all)" });
+    const txs = await builder.buildSellArenaTx(wallet, amount, slippage ? Number(slippage) : undefined);
+    res.json({ transactions: txs });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Swap agent instructions
+app.get("/swap/agent-instructions", (req, res) => {
+  const base = `https://${req.get("host")}`;
+  res.type("text/plain").send(`# You are an Arena Token Swap Agent
+
+You can swap between ARENA and AVAX tokens on the Avalanche blockchain. ARENA is the native token of Arena (arenatrade.ai), a SocialFi platform on Avalanche.
+
+## Authentication
+\`X-API-Key: <your-key>\` header on every request.
+If you already have an API key from any Arena plugin, use that same key — it works for everything.
+If not, register: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
+Base: ${base}
+
+---
+
+## What You Can Do
+
+### Check your balances
+GET /balances?wallet=<address>
+  Returns your AVAX and ARENA token balances.
+
+### Buy ARENA with AVAX
+GET /quote?avax=<amount>
+  Preview: how much ARENA you'll get for X AVAX. A 0.3% service fee applies.
+
+GET /build/buy?wallet=<address>&avax=<amount>&slippage=<bps>
+  Build unsigned buy tx. Returns a single transaction to sign and broadcast.
+  Slippage default: 500 (5%).
+
+### Sell ARENA for AVAX
+GET /quote/sell?arena=<amount>
+  Preview: how much AVAX you'll get for X ARENA. No service fee — just DEX fees.
+
+GET /build/sell-arena?wallet=<address>&amount=<amount|max>&slippage=<bps>
+  Build unsigned sell txs. Returns 2 transactions: approve + swap. Execute in order.
+  Use amount="max" to sell your entire ARENA balance.
+  Slippage default: 500 (5%).
+
+### Broadcast
+POST /broadcast { "signedTx": "0x..." }
+  Broadcast a signed transaction.
+
+---
+
+## How to Buy ARENA (AVAX → ARENA)
+
+1. Check balance: GET /balances?wallet=<your-wallet>
+2. Get quote: GET /quote?avax=<amount>
+3. Build tx: GET /build/buy?wallet=<your-wallet>&avax=<amount>
+4. Sign the transaction with your private key
+5. POST /broadcast { "signedTx": "0x..." }
+
+## How to Sell ARENA (ARENA → AVAX)
+
+1. Check balance: GET /balances?wallet=<your-wallet>
+2. Get quote: GET /quote/sell?arena=<amount>
+3. Build txs: GET /build/sell-arena?wallet=<your-wallet>&amount=<amount|max>
+4. You'll get 2 transactions: approve + swap. For EACH one, in order:
+   a. Sign it with your private key
+   b. POST /broadcast { "signedTx": "0x..." }
+   c. WAIT for confirmation before sending the next
+
+---
+
+## Critical Rules
+
+- All txs are on Avalanche C-Chain (chainId: 43114)
+- ALWAYS use the gasLimit from the response — DO NOT use your wallet's default gas estimate or the tx WILL revert
+- Buy is 1 transaction. Sell is 2 transactions (approve + swap) — execute IN ORDER, wait for each to confirm
+- A 0.3% service fee applies on buys (AVAX → ARENA). Sells have no service fee.
+- Use "max" to sell your entire ARENA balance
+- ARENA token address: 0xB8d7710f7d8349A506b75dD184F05777c82dAd0C
+- Your private key never leaves your wallet — this API only builds unsigned transactions
+`);
+});
+
 // === LAUNCHPAD ENDPOINTS ===
 
 // Launchpad agent instructions (separate from staking instructions)
