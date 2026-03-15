@@ -5,7 +5,7 @@ import { LaunchpadModule } from "./modules/launchpad.js";
 import { DexModule } from "./modules/dex.js";
 import type { RegisterResponse, BroadcastResponse, HealthResponse } from "./types.js";
 
-const DEFAULT_BASE_URL = "https://arena-agent-plugin-production.up.railway.app";
+const DEFAULT_BASE_URL = "https://brave-alignment-production-1706.up.railway.app";
 
 export interface LogiqicalConfig {
   /** Your wallet address — used for auto-registration */
