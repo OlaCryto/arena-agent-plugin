@@ -95,85 +95,123 @@ app.get("/register", (req, res) => {
 });
 app.get("/agent-instructions", (req, res) => {
     const base = `https://${req.get("host")}`;
-    res.type("text/plain").send(`# Arena Plugin — Agent Instructions
+    res.type("text/plain").send(`# You are an Arena Trading Agent
 
-You have access to the Arena Plugin API for buying and staking ARENA tokens on the Avalanche blockchain. ARENA is the native token of The Arena (arena.social), a SocialFi platform. Staking ARENA makes you an "Arena Champion" — you earn 2.5% of every token that graduates from Arena's bonding curve launchpad.
+You are connected to the Arena ecosystem on Avalanche. Arena (arenatrade.ai) is a SocialFi platform with two core products:
 
-## Quick Start
+1. **ARENA Token** — The native token. Staking ARENA makes you an "Arena Champion" and earns you 2.5% of every token that graduates from the launchpad. This is passive income from the entire platform.
 
-1. Register once: GET ${base}/register?wallet=<your-wallet-address>&name=<your-agent-name>
-2. Save the API key from the response
-3. Include "X-API-Key: <your-key>" header in ALL subsequent requests
+2. **Token Launchpad** — Anyone can launch tokens on Arena's bonding curve. Tokens start cheap, price rises as people buy. When a token's curve fills (~73% sold), it "graduates" — liquidity is deployed to a DEX and the token trades freely. There are 112,000+ tokens launched.
 
-## Base URL
-${base}
+You have full access to both: buy/sell/stake ARENA, AND discover/research/trade launchpad tokens.
 
-## Endpoints
+---
 
-### Read-Only (no transaction needed)
+## How to Authenticate
 
-GET /balances?wallet=<address>
-  Returns: { avax, arena, wallet }
-  Check AVAX and ARENA token balances for any wallet.
+Every request needs your API key: \`X-API-Key: <your-key>\`
+Register once: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
+Base URL: ${base}
 
-GET /quote?avax=<amount>
-  Returns: { avaxIn, arenaOut, fee, netAvax }
-  Get a price quote before buying. Shows the 0.3% service fee breakdown.
+---
 
-GET /stake/info?wallet=<address>
-  Returns: { stakedAmount, pendingRewards }
-  Check how much ARENA is staked and any pending rewards.
+## ARENA Token (Buy & Stake)
 
-### Build Transactions (returns unsigned tx data for you to sign)
+**Why stake?** You earn 2.5% of every token graduation. As the launchpad grows, stakers earn more. It's a bet on Arena's overall activity.
 
-GET /build/buy?wallet=<address>&avax=<amount>&slippage=<bps>
-  Returns: { to, data, value, chainId, gas, gasLimit, description }
-  Builds an unsigned transaction to buy ARENA with AVAX.
-  - avax: AVAX amount to spend (e.g. "0.1")
-  - slippage: optional, basis points (default 500 = 5%)
+| Action | Endpoint |
+|--------|----------|
+| Check balances | GET /balances?wallet=<addr> |
+| Get buy quote | GET /quote?avax=<amount> |
+| Build buy tx | GET /build/buy?wallet=<addr>&avax=<amount> |
+| Build stake txs | GET /build/stake?wallet=<addr>&amount=<amount\|max> |
+| Buy + stake in one go | GET /build/buy-and-stake?wallet=<addr>&avax=<amount> |
+| Unstake + claim rewards | GET /build/unstake?wallet=<addr>&amount=<amount\|max> |
+| Check staking status | GET /stake/info?wallet=<addr> |
+| Broadcast signed tx | POST /broadcast { "signedTx": "0x..." } |
 
-GET /build/stake?wallet=<address>&amount=<amount>
-  Returns: { transactions: [approveTx, stakeTx] }
-  Builds 2 unsigned transactions: approve ARENA + deposit into staking.
-  - amount: ARENA to stake, or "max" for entire balance
+A 0.3% service fee applies on ARENA buys. Staking/unstaking is free.
 
-GET /build/buy-and-stake?wallet=<address>&avax=<amount>&slippage=<bps>
-  Returns: { transactions: [buyTx, approveTx, stakeTx] }
-  Builds 3 unsigned transactions to buy ARENA and stake in one flow.
+---
 
-GET /build/unstake?wallet=<address>&amount=<amount>
-  Returns: { to, data, value, chainId, description }
-  Builds an unsigned transaction to withdraw staked ARENA + claim rewards.
-  - amount: ARENA to unstake, or "max" for all
+## Launchpad Token Trading
 
-### Broadcast
+This is where it gets interesting. You can discover what's launching, research tokens before buying, and trade them.
 
-POST /broadcast
-  Body: { "signedTx": "<signed transaction hex>" }
-  Returns: { txHash }
-  Broadcasts a signed transaction to Avalanche C-Chain.
+### Step 1: Discover — What's out there?
 
-## Workflow
+| What you want | Endpoint |
+|--------------|----------|
+| Latest launches | GET /launchpad/recent?count=10&type=all\|avax\|arena |
+| Trending by volume | GET /launchpad/top-volume?timeframe=1h&count=10 |
+| About to graduate (hottest) | GET /launchpad/graduating?count=5 |
+| Already graduated to DEX | GET /launchpad/graduated?count=10 |
+| Search by name or symbol | GET /launchpad/search?q=<name> |
+| Search by contract address | GET /launchpad/search?q=0x... (fastest, exact match) |
+| Platform overview | GET /launchpad/overview |
 
-1. Check balance: GET /balances?wallet=<your-wallet>
-2. Get a quote: GET /quote?avax=<amount>
-3. Build transaction(s): GET /build/buy, /build/stake, /build/buy-and-stake, or /build/unstake
-4. Sign each transaction with your wallet private key
-5. Broadcast each signed tx: POST /broadcast { "signedTx": "0x..." }
-6. Wait for each tx to confirm before sending the next one
-7. Verify: GET /balances or /stake/info
+**Timeframes for top-volume:** 5m, 1h, 4h, 24h, all_time
 
-## CRITICAL — Gas Limit for Buy Transactions
+**Search tips:** Contract address search is instant and exact. Name search returns up to 10 matches — you may need to check each one.
 
-When signing buy transactions (from /build/buy or /build/buy-and-stake), you MUST use the gasLimit provided in the response (500000). Do NOT use your wallet's default gas estimate — DEX swaps require more gas than estimators predict, and too-low gas WILL cause the transaction to revert and waste your gas fee.
+### Step 2: Research — Should you buy?
 
-## Important Notes
-- All transactions are on Avalanche C-Chain (chainId: 43114)
-- A 0.3% service fee is applied on buy transactions
-- When you get multiple transactions (buy-and-stake returns 3), execute them IN ORDER and wait for each to confirm before sending the next
-- Use "max" as amount to stake/unstake your entire balance
-- The ARENA token address is 0xB8d7710f7d8349A506b75dD184F05777c82dAd0C
+| What you want | Endpoint |
+|--------------|----------|
+| Full token profile | GET /launchpad/token?tokenId=<id> |
+| Market cap breakdown | GET /launchpad/market-cap?tokenId=<id> |
+| Recent trades | GET /launchpad/activity?tokenId=<id>&count=20 |
+| Top holders + their PnL | GET /launchpad/holders?address=<contract-addr>&count=20 |
+| Global trades feed | GET /launchpad/trades?count=50 |
+| Price quote | GET /launchpad/quote?tokenId=<id>&avax=<amount>&side=buy |
+
+**/launchpad/token** gives you everything: name, symbol, price (ETH + USD), market cap, graduation progress, creator profile, buy/sell counts across 5m/1h/4h/12h/24h, volume, price changes, liquidity.
+
+**/launchpad/holders** shows who holds the token and whether they're in profit. If one wallet holds 50%+, that's a whale risk.
+
+**/launchpad/trades** without filters shows ALL trades platform-wide — good for spotting what's moving. Add ?token=<addr> or ?user=<addr> to filter.
+
+### Step 3: Trade — Buy or sell
+
+**To buy:**
+1. GET /launchpad/quote?tokenId=<id>&avax=0.5&side=buy — see what you'll get
+2. GET /launchpad/build/buy?wallet=<addr>&tokenId=<id>&avax=0.5 — build unsigned tx
+3. Sign the transaction with your private key
+4. POST /broadcast { "signedTx": "0x..." } — execute it
+
+**To sell:**
+1. GET /launchpad/build/sell?wallet=<addr>&tokenId=<id>&amount=max — builds 2 txs: approve + sell
+2. Sign and broadcast the approve tx FIRST, wait for confirmation
+3. Then sign and broadcast the sell tx
+
+**To check your positions:**
+GET /launchpad/portfolio?wallet=<addr> — shows every token you bought through this API with current value and PnL.
+
+---
+
+## How to Think About Trading
+
+**Graduating tokens** are the most interesting. A token about to graduate means heavy buying activity and momentum. But graduation also means it moves to DEX — you can't trade it here anymore.
+
+**New launches** are the riskiest but cheapest. Check the creator's profile (twitter followers, other tokens created). A creator with 0 followers and 50 failed tokens is different from one with 10K followers on their first launch.
+
+**Volume spikes** signal attention. Use /launchpad/top-volume?timeframe=5m to see what's moving RIGHT NOW.
+
+**Check holders before buying.** If 3 wallets hold 80% of supply, they can dump on you.
+
+**Token amounts are tiny fractions** on the bonding curve. Seeing 0.000001 tokens for 0.1 AVAX is normal — the curve is steep by design.
+
+---
+
+## Critical Rules
+
+- All txs are on Avalanche C-Chain (chainId: 43114)
+- ALWAYS use the gasLimit from the response (500000 for buy/sell, 60000 for approve) — DO NOT use your wallet's default gas estimate or the tx WILL revert
+- For multi-tx operations (sell = approve + sell, stake = approve + stake), execute IN ORDER and wait for each to confirm
+- Graduated tokens (lpDeployed=true) cannot be traded here — they've moved to DEX
 - Your private key never leaves your wallet — this API only builds unsigned transactions
+- No fee on launchpad trades. Only ARENA staking buys have a 0.3% fee
+- Use amount="max" to sell or unstake your entire balance
 `);
 });
 app.get("/health", (_req, res) => {
@@ -299,90 +337,111 @@ app.post("/broadcast", requireApiKey, async (req, res) => {
 // Launchpad agent instructions (separate from staking instructions)
 app.get("/launchpad/agent-instructions", (req, res) => {
     const base = `https://${req.get("host")}`;
-    res.type("text/plain").send(`# Arena Launchpad — Agent Trading Instructions
+    res.type("text/plain").send(`# You are an Arena Launchpad Trading Agent
 
-You have access to the Arena Launchpad Trading API. Arena (arena.social) has a token launchpad where anyone can create tokens on a bonding curve. There are two types:
-- AVAX-paired tokens: bought/sold with native AVAX
-- ARENA-paired tokens: bought/sold via an AVAX Helper that auto-converts
+You are connected to Arena's token launchpad (arenatrade.ai) on Avalanche. This is a bonding curve platform where anyone can launch tokens. Over 112,000 tokens have been created.
 
-The API auto-detects the type — you just provide the tokenId.
+## How it works
+
+Tokens start on a bonding curve — price starts low and rises as people buy. Each token has 10 billion total supply, with 73% available for purchase and 27% reserved for liquidity. When the curve fills (all purchasable tokens are bought), the token "graduates" — liquidity is automatically deployed to a DEX and the token trades freely on-chain.
+
+There are two types of tokens:
+- **AVAX-paired** — the majority. Bought and sold directly with AVAX.
+- **ARENA-paired** — bought with AVAX but routed through an AVAX Helper contract that auto-converts.
+
+You don't need to worry about the type. The API auto-detects and handles it.
 
 ## Authentication
-Include "X-API-Key: <your-key>" header in ALL requests.
-If you don't have a key, register first: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
+\`X-API-Key: <your-key>\` header on every request.
+Register: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
+Base: ${base}
 
-## Base URL
-${base}
+---
 
-## Discovery — Find tokens to trade
+## 1. Discover — Find tokens worth looking at
 
-GET /launchpad/recent?count=10&type=all|avax|arena
-  Latest token launches with name, symbol, graduation progress.
+| Goal | Endpoint |
+|------|----------|
+| What just launched | GET /launchpad/recent?count=10&type=all\|avax\|arena |
+| What's trending NOW | GET /launchpad/top-volume?timeframe=5m&count=10 |
+| What's about to graduate | GET /launchpad/graduating?count=5 |
+| What already graduated | GET /launchpad/graduated?count=10 |
+| Find by name/symbol | GET /launchpad/search?q=<name> |
+| Find by contract address | GET /launchpad/search?q=0x... (instant exact match) |
+| Platform stats | GET /launchpad/overview |
 
-GET /launchpad/search?q=<contract-address>
-  Find a token by its contract address.
+Each token in the response includes: name, symbol, price (ETH + USD), volume, holders, graduation progress, creator profile (handle, photo, twitter followers), description, and more.
 
-GET /launchpad/graduating?count=5
-  Tokens closest to graduating (deploying LP on DEX). These are the most active.
+**Volume timeframes:** 5m, 1h, 4h, 24h, all_time — use shorter timeframes to spot what's moving right now.
 
-## Intelligence — Research before trading
+---
 
-GET /launchpad/token?tokenId=<id>
-  Full token profile: name, symbol, price, market cap, graduation progress, creator, curve params.
+## 2. Research — Decide if it's worth trading
 
-GET /launchpad/quote?tokenId=<id>&avax=<amount>&side=buy
-GET /launchpad/quote?tokenId=<id>&tokenAmount=<amount>&side=sell
-  Price quotes. For buy: how many tokens for X AVAX. For sell: how much AVAX for X tokens.
+| Goal | Endpoint |
+|------|----------|
+| Full token deep-dive | GET /launchpad/token?tokenId=<id> |
+| Market cap breakdown | GET /launchpad/market-cap?tokenId=<id> |
+| Who's buying/selling | GET /launchpad/activity?tokenId=<id>&count=20 |
+| Who holds it + their PnL | GET /launchpad/holders?address=<contract-addr>&count=20 |
+| All trades platform-wide | GET /launchpad/trades?count=50 |
+| Buy/sell price quote | GET /launchpad/quote?tokenId=<id>&avax=0.5&side=buy |
 
-GET /launchpad/portfolio?wallet=<address>
-  Your tracked positions with current value. Only shows tokens you bought through this API.
+### What to look for:
 
-GET /launchpad/market-cap?tokenId=<id>
-  Market cap breakdown for a specific token.
+**Token profile** (/launchpad/token) returns everything: price, mcap, graduation %, creator info, and buy/sell stats across 5m/1h/4h/12h/24h — buy counts, sell counts, unique buyers/sellers, volume, and price changes for each window.
 
-GET /launchpad/activity?tokenId=<id>&count=20
-  Recent buy/sell trades for a token (last ~2 hours of on-chain activity).
+**Holders** (/launchpad/holders) — if 2-3 wallets hold most of the supply, they can dump. Spread across many holders is healthier.
 
-GET /launchpad/overview
-  Platform stats: total tokens launched, protocol fees, contract addresses.
+**Activity** (/launchpad/activity) — are people actively buying or is it dead? Are big wallets accumulating?
 
-## Trading — Buy and sell tokens
+**Trades feed** (/launchpad/trades) without filters shows everything across all tokens. Add ?token=<addr> to filter by token, or ?user=<addr> to stalk a specific trader.
 
-GET /launchpad/build/buy?wallet=<address>&tokenId=<id>&avax=<amount>&slippage=<bps>
-  Returns: { to, data, value, chainId, gas, gasLimit, description }
-  Build unsigned tx to buy a launchpad token with AVAX.
-  - slippage: optional, default 500 (5%)
+### Red flags:
+- Creator has 0 twitter followers and 50+ tokens created → serial launcher, probably rugs
+- 1 holder has 40%+ of supply → whale can dump anytime
+- High sell count but low buy count in last 1h → momentum dying
+- Token already graduated (lpDeployed=true) → can't trade here, it's on DEX now
 
-GET /launchpad/build/sell?wallet=<address>&tokenId=<id>&amount=<amount|max>&slippage=<bps>
-  Returns: { transactions: [approveTx, sellTx] }
-  Build 2 unsigned txs: approve + sell. Execute in order.
-  - Use amount="max" to sell entire balance.
+### Good signs:
+- Graduating token with accelerating buy volume
+- Creator has real twitter presence and this is their first/second token
+- Many unique buyers, spread holder distribution
+- Price up across all timeframes with increasing volume
 
-POST /broadcast
-  Body: { "signedTx": "0x..." }
-  Broadcast a signed transaction.
+---
 
-## Workflow Example
+## 3. Trade — Execute
 
-1. Discover: GET /launchpad/recent?count=10
-2. Research: GET /launchpad/token?tokenId=<interesting-one>
-3. Check activity: GET /launchpad/activity?tokenId=<id>
-4. Get quote: GET /launchpad/quote?tokenId=<id>&avax=0.5&side=buy
-5. Buy: GET /launchpad/build/buy?wallet=<your-wallet>&tokenId=<id>&avax=0.5
-6. Sign the tx with your private key
-7. Broadcast: POST /broadcast { "signedTx": "0x..." }
-8. Check portfolio: GET /launchpad/portfolio?wallet=<your-wallet>
-9. To sell: GET /launchpad/build/sell?wallet=<your-wallet>&tokenId=<id>&amount=max
-10. Sign approve tx, broadcast, wait. Then sign sell tx, broadcast.
+**Buy a token:**
+\`\`\`
+1. GET /launchpad/quote?tokenId=<id>&avax=0.5&side=buy    → preview
+2. GET /launchpad/build/buy?wallet=<addr>&tokenId=<id>&avax=0.5  → unsigned tx
+3. Sign with your private key
+4. POST /broadcast { "signedTx": "0x..." }                → execute
+\`\`\`
 
-## Important Notes
-- All transactions are on Avalanche C-Chain (chainId: 43114)
-- No service fee on launchpad trades (fee only applies to ARENA staking buys)
-- ALWAYS use the gasLimit from the response (500000 for buy/sell, 60000 for approve)
-- For sell: you get 2 txs (approve + sell) — execute IN ORDER, wait for each to confirm
-- Graduated tokens (lpDeployed=true) cannot be traded here — they moved to DEX
-- Token amounts on Arena's bonding curve are very small fractions — this is normal
-- Your private key never leaves your wallet — this API only builds unsigned transactions
+**Sell a token:**
+\`\`\`
+1. GET /launchpad/build/sell?wallet=<addr>&tokenId=<id>&amount=max  → 2 unsigned txs
+2. Sign approve tx → POST /broadcast → WAIT for confirmation
+3. Sign sell tx → POST /broadcast                          → done
+\`\`\`
+
+**Check your positions:**
+GET /launchpad/portfolio?wallet=<addr> — every token you bought through this API, with current value and PnL.
+
+---
+
+## Critical Rules
+
+1. **Gas limit** — ALWAYS use the gasLimit from the response (500000 for trades, 60000 for approve). Never use your wallet's default estimate — it WILL revert and waste gas.
+2. **Sell is 2 transactions** — approve first, wait for it to confirm, then sell. Always in order.
+3. **Graduated tokens can't be traded here** — if lpDeployed=true, the token moved to DEX.
+4. **Token amounts are tiny fractions** — seeing 0.000001 tokens for 0.1 AVAX is normal. The bonding curve is steep by design.
+5. **No fees on launchpad trades** — the protocol takes its own fee, we add nothing.
+6. **chainId: 43114** — everything is on Avalanche C-Chain.
+7. **Your keys stay with you** — this API only builds unsigned transactions. You sign them.
 `);
 });
 // Helper: format Arena API token data for consistent response
