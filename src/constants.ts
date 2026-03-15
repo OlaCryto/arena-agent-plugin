@@ -24,6 +24,8 @@ export const ERC20_ABI = [
   "function allowance(address owner, address spender) view returns (uint256)",
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
+  "function name() view returns (string)",
+  "function totalSupply() view returns (uint256)",
 ];
 
 export const ARENA_STAKING_ABI = [
@@ -48,4 +50,51 @@ export const LB_ROUTER_ABI = [
 
 export const LB_QUOTER_ABI = [
   "function findBestPathFromAmountIn(address[] calldata route, uint128 amountIn) view returns (tuple(address[] route, address[] pairs, uint256[] binSteps, uint256[] versions, uint128[] amounts, uint128[] virtualAmountsWithoutSlippage, uint128[] fees) quote)",
+];
+
+// ─── Arena Launchpad Contracts ───
+
+// AVAX-paired token launches (tokenId < 100B)
+export const LAUNCH_CONTRACT = "0x8315f1eb449Dd4B779495C3A0b05e5d194446c6e";
+// ARENA-paired token launches (tokenId >= 100B)
+export const TOKEN_MANAGER = "0x2196e106af476f57618373ec028924767c758464";
+// Routes AVAX↔ARENA for Token Manager buys/sells
+export const AVAX_HELPER = "0x03f1a18519abedbef210fa44e13b71fec01b8dfa";
+
+// Token ID threshold: IDs below this are AVAX-paired (Launch Contract), above are ARENA-paired (Token Manager)
+export const ARENA_PAIRED_THRESHOLD = 100_000_000_000n;
+// All token amounts on the bonding curve must be multiples of this
+export const GRANULARITY_SCALER = 10n ** 18n;
+
+export const LAUNCH_CONTRACT_ABI = [
+  "function buyAndCreateLpIfPossible(uint256 amount, uint256 tokenId) payable",
+  "function sell(uint256 amount, uint256 tokenId)",
+  "function calculateCostWithFees(uint256 amountInToken, uint256 tokenId) view returns (uint256)",
+  "function calculateRewardWithFees(uint256 amount, uint256 tokenId) view returns (uint256)",
+  "function getMaxTokensForSale(uint256 tokenId) view returns (uint256)",
+  "function tokenSupply(uint256 tokenId) view returns (uint256)",
+  "function getTokenParameters(uint256 tokenId) view returns (uint128 curveScaler, uint16 a, uint8 b, bool lpDeployed, uint8 lpPercentage, uint8 salePercentage, uint8 creatorFeeBasisPoints, address creatorAddress, address pairAddress, address tokenContractAddress)",
+  "function tokenIdentifier() view returns (uint256)",
+  "function protocolFeeBasisPoint() view returns (uint256)",
+  "event TokenCreated(uint256 indexed tokenId, tuple(uint128 curveScaler, uint16 a, uint8 b, bool lpDeployed, uint8 lpPercentage, uint8 salePercentage, uint8 creatorFeeBasisPoints, address creatorAddress, address pairAddress, address tokenContractAddress) params, uint256 tokenSupply)",
+  "event Buy(address indexed user, uint256 indexed tokenId, uint256 tokenAmount, uint256 cost, uint256 tokenSupply, address referrerAddress, uint256 referralFee, uint256 creatorFee, uint256 protocolFee)",
+  "event Sell(address indexed user, uint256 indexed tokenId, uint256 tokenAmount, uint256 reward, uint256 tokenSupply, address referrerAddress, uint256 referralFee, uint256 creatorFee, uint256 protocolFee)",
+  "event TokenLPCreated(uint256 indexed tokenId, uint256 amountToken, uint256 amountAVAX, uint256 liquidity)",
+];
+
+export const TOKEN_MANAGER_ABI = [
+  "function calculateCostWithFees(uint256 amountInToken, uint256 tokenId) view returns (uint256)",
+  "function calculateRewardWithFees(uint256 amount, uint256 tokenId) view returns (uint256)",
+  "function getMaxTokensForSale(uint256 tokenId) view returns (uint256)",
+  "function tokenSupply(uint256 tokenId) view returns (uint256)",
+  "function getTokenParameters(uint256 tokenId) view returns (uint128 curveScaler, uint32 a, uint8 b, bool lpDeployed, uint8 lpPercentage, uint8 salePercentage, uint8 creatorFeeBasisPoints, address creatorAddress, address pairAddress, address tokenContractAddress)",
+  "function tokenIdentifier() view returns (uint256)",
+  "function protocolFeeBasisPoint() view returns (uint256)",
+  "event Buy(address indexed user, uint256 indexed tokenId, uint256 tokenAmount, uint256 cost, uint256 tokenSupply, address referrerAddress, uint256 referralFee, uint256 creatorFee, uint256 protocolFee)",
+  "event Sell(address indexed user, uint256 indexed tokenId, uint256 tokenAmount, uint256 reward, uint256 tokenSupply, address referrerAddress, uint256 referralFee, uint256 creatorFee, uint256 protocolFee)",
+];
+
+export const AVAX_HELPER_ABI = [
+  "function buyAndCreateLpIfPossibleWithAvax(uint256 tokenId, uint256 amountOutMin) payable returns (uint256)",
+  "function sellToAvax(uint256 tokenId, uint256 amount, uint256 amountOutAvaxMin) returns (uint256)",
 ];

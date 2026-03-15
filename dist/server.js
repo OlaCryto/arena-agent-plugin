@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -6,6 +39,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const txbuilder_1 = require("./txbuilder");
 const apikeys_1 = require("./apikeys");
+const positions_1 = require("./positions");
+const arenaApi = __importStar(require("./arena-api"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -255,6 +290,466 @@ app.post("/broadcast", requireApiKey, async (req, res) => {
             return res.status(400).json({ error: "signedTx is required in body" });
         const txHash = await builder.broadcast(signedTx);
         res.json({ txHash });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// === LAUNCHPAD ENDPOINTS ===
+// Launchpad agent instructions (separate from staking instructions)
+app.get("/launchpad/agent-instructions", (req, res) => {
+    const base = `https://${req.get("host")}`;
+    res.type("text/plain").send(`# Arena Launchpad — Agent Trading Instructions
+
+You have access to the Arena Launchpad Trading API. Arena (arena.social) has a token launchpad where anyone can create tokens on a bonding curve. There are two types:
+- AVAX-paired tokens: bought/sold with native AVAX
+- ARENA-paired tokens: bought/sold via an AVAX Helper that auto-converts
+
+The API auto-detects the type — you just provide the tokenId.
+
+## Authentication
+Include "X-API-Key: <your-key>" header in ALL requests.
+If you don't have a key, register first: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
+
+## Base URL
+${base}
+
+## Discovery — Find tokens to trade
+
+GET /launchpad/recent?count=10&type=all|avax|arena
+  Latest token launches with name, symbol, graduation progress.
+
+GET /launchpad/search?q=<contract-address>
+  Find a token by its contract address.
+
+GET /launchpad/graduating?count=5
+  Tokens closest to graduating (deploying LP on DEX). These are the most active.
+
+## Intelligence — Research before trading
+
+GET /launchpad/token?tokenId=<id>
+  Full token profile: name, symbol, price, market cap, graduation progress, creator, curve params.
+
+GET /launchpad/quote?tokenId=<id>&avax=<amount>&side=buy
+GET /launchpad/quote?tokenId=<id>&tokenAmount=<amount>&side=sell
+  Price quotes. For buy: how many tokens for X AVAX. For sell: how much AVAX for X tokens.
+
+GET /launchpad/portfolio?wallet=<address>
+  Your tracked positions with current value. Only shows tokens you bought through this API.
+
+GET /launchpad/market-cap?tokenId=<id>
+  Market cap breakdown for a specific token.
+
+GET /launchpad/activity?tokenId=<id>&count=20
+  Recent buy/sell trades for a token (last ~2 hours of on-chain activity).
+
+GET /launchpad/overview
+  Platform stats: total tokens launched, protocol fees, contract addresses.
+
+## Trading — Buy and sell tokens
+
+GET /launchpad/build/buy?wallet=<address>&tokenId=<id>&avax=<amount>&slippage=<bps>
+  Returns: { to, data, value, chainId, gas, gasLimit, description }
+  Build unsigned tx to buy a launchpad token with AVAX.
+  - slippage: optional, default 500 (5%)
+
+GET /launchpad/build/sell?wallet=<address>&tokenId=<id>&amount=<amount|max>&slippage=<bps>
+  Returns: { transactions: [approveTx, sellTx] }
+  Build 2 unsigned txs: approve + sell. Execute in order.
+  - Use amount="max" to sell entire balance.
+
+POST /broadcast
+  Body: { "signedTx": "0x..." }
+  Broadcast a signed transaction.
+
+## Workflow Example
+
+1. Discover: GET /launchpad/recent?count=10
+2. Research: GET /launchpad/token?tokenId=<interesting-one>
+3. Check activity: GET /launchpad/activity?tokenId=<id>
+4. Get quote: GET /launchpad/quote?tokenId=<id>&avax=0.5&side=buy
+5. Buy: GET /launchpad/build/buy?wallet=<your-wallet>&tokenId=<id>&avax=0.5
+6. Sign the tx with your private key
+7. Broadcast: POST /broadcast { "signedTx": "0x..." }
+8. Check portfolio: GET /launchpad/portfolio?wallet=<your-wallet>
+9. To sell: GET /launchpad/build/sell?wallet=<your-wallet>&tokenId=<id>&amount=max
+10. Sign approve tx, broadcast, wait. Then sign sell tx, broadcast.
+
+## Important Notes
+- All transactions are on Avalanche C-Chain (chainId: 43114)
+- No service fee on launchpad trades (fee only applies to ARENA staking buys)
+- ALWAYS use the gasLimit from the response (500000 for buy/sell, 60000 for approve)
+- For sell: you get 2 txs (approve + sell) — execute IN ORDER, wait for each to confirm
+- Graduated tokens (lpDeployed=true) cannot be traded here — they moved to DEX
+- Token amounts on Arena's bonding curve are very small fractions — this is normal
+- Your private key never leaves your wallet — this API only builds unsigned transactions
+`);
+});
+// Helper: format Arena API token data for consistent response
+function formatToken(t) {
+    return {
+        tokenId: t.group_id,
+        type: t.lp_paired_with === "ARENA" ? "ARENA-paired" : "AVAX-paired",
+        name: t.token_name,
+        symbol: t.token_symbol,
+        tokenAddress: t.token_contract_address,
+        photoUrl: t.photo_url,
+        description: t.description?.trim() || null,
+        creator: {
+            address: t.creator_address,
+            handle: t.creator_user_handle,
+            photoUrl: t.creator_photo_url,
+            twitterFollowers: t.creator_twitter_followers,
+            totalTokensCreated: t.creator_total_tokens ?? null,
+        },
+        price: {
+            eth: t.latest_price_eth,
+            usd: t.latest_price_usd,
+            avaxPrice: t.latest_avax_price,
+        },
+        volume: {
+            totalEth: t.latest_total_volume_eth,
+            totalUsd: t.latest_total_volume_usd,
+        },
+        holders: t.latest_holder_count,
+        transactions: t.latest_transaction_count,
+        graduationProgress: t.graduation_percentage != null ? `${t.graduation_percentage.toFixed(2)}%` : null,
+        graduated: t.lp_deployed,
+        supply: t.latest_supply_eth,
+        createdAt: t.create_time ? new Date(parseInt(t.create_time) * 1000).toISOString() : null,
+        whitelist: t.whitelist_info,
+        isOfficial: t.is_official,
+        dexPoolId: t.v4_pool_id,
+    };
+}
+// Discovery endpoints
+app.get("/launchpad/recent", requireApiKey, async (req, res) => {
+    try {
+        const count = Math.min(parseInt(req.query.count) || 10, 50);
+        const type = req.query.type || "all";
+        const raw = await arenaApi.getRecentTokens(Math.min(count * 2, 50));
+        let tokens = raw;
+        if (type === "avax")
+            tokens = raw.filter(t => t.lp_paired_with === "AVAX");
+        else if (type === "arena")
+            tokens = raw.filter(t => t.lp_paired_with === "ARENA");
+        const result = tokens.slice(0, count).map(formatToken);
+        res.json({ count: result.length, tokens: result });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/search", requireApiKey, async (req, res) => {
+    try {
+        const q = req.query.q;
+        if (!q)
+            return res.status(400).json({ error: "?q=<name, symbol, or contract address> required" });
+        // If it looks like an address (0x...), search by contract address (fast direct lookup)
+        if (q.startsWith("0x") && q.length === 42) {
+            const match = await arenaApi.getTokenByAddress(q);
+            if (match) {
+                const stats = await arenaApi.getTokenStats(q).catch(() => null);
+                return res.json({ ...formatToken(match), stats: stats || undefined });
+            }
+            // Fallback to on-chain search
+            const result = await builder.searchToken(q);
+            return res.json(result);
+        }
+        // Otherwise search by name/symbol via Arena API
+        const results = await arenaApi.searchTokens(q, 20);
+        if (results.length === 0)
+            return res.status(404).json({ error: `No tokens found matching "${q}"` });
+        res.json({ count: results.length, tokens: results.map(formatToken) });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/graduating", requireApiKey, async (req, res) => {
+    try {
+        const count = Math.min(parseInt(req.query.count) || 5, 20);
+        const tokens = await arenaApi.getGraduatingTokens(count);
+        res.json({ count: tokens.length, tokens: tokens.map(formatToken) });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/graduated", requireApiKey, async (req, res) => {
+    try {
+        const count = Math.min(parseInt(req.query.count) || 10, 50);
+        const tokens = await arenaApi.getGraduatedTokens(count);
+        res.json({ count: tokens.length, tokens: tokens.map(formatToken) });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/top-volume", requireApiKey, async (req, res) => {
+    try {
+        const timeframe = req.query.timeframe || "24h";
+        if (!["5m", "1h", "4h", "24h", "all_time"].includes(timeframe)) {
+            return res.status(400).json({ error: "timeframe must be 5m, 1h, 4h, 24h, or all_time" });
+        }
+        const count = Math.min(parseInt(req.query.count) || 10, 50);
+        const tokens = await arenaApi.getTopVolume(timeframe, count);
+        res.json({ count: tokens.length, timeframe, tokens: tokens.map(formatToken) });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Intelligence endpoints
+app.get("/launchpad/token", requireApiKey, async (req, res) => {
+    try {
+        const tokenId = req.query.tokenId;
+        const tokenAddress = req.query.address;
+        if (!tokenId && !tokenAddress)
+            return res.status(400).json({ error: "?tokenId= or ?address= required" });
+        // Get on-chain data (for accurate price/curve data)
+        let onChainInfo = null;
+        if (tokenId) {
+            try {
+                onChainInfo = await builder.getTokenInfo(tokenId);
+            }
+            catch { }
+        }
+        // Get rich data from Arena API (fast direct lookup by address)
+        let apiData = null;
+        let stats = null;
+        const addr = tokenAddress || onChainInfo?.tokenAddress;
+        if (addr) {
+            const match = await arenaApi.getTokenByAddress(addr).catch(() => null);
+            if (match)
+                apiData = formatToken(match);
+            stats = await arenaApi.getTokenStats(addr).catch(() => null);
+        }
+        res.json({
+            ...(apiData || {}),
+            ...(onChainInfo || {}),
+            stats: stats ? {
+                buys: { "5m": stats.buyCount5m, "1h": stats.buyCount1, "4h": stats.buyCount4, "12h": stats.buyCount12, "24h": stats.buyCount24 },
+                sells: { "5m": stats.sellCount5m, "1h": stats.sellCount1, "4h": stats.sellCount4, "12h": stats.sellCount12, "24h": stats.sellCount24 },
+                uniqueBuyers: { "5m": stats.uniqueBuys5m, "1h": stats.uniqueBuys1, "4h": stats.uniqueBuys4, "12h": stats.uniqueBuys12, "24h": stats.uniqueBuys24 },
+                uniqueSellers: { "5m": stats.uniqueSells5m, "1h": stats.uniqueSells1, "4h": stats.uniqueSells4, "12h": stats.uniqueSells12, "24h": stats.uniqueSells24 },
+                volume: { "5m": stats.volume5m, "1h": stats.volume1, "4h": stats.volume4, "12h": stats.volume12, "24h": stats.volume24 },
+                priceChange: { "5m": stats.priceChange5m, "1h": stats.priceChange1, "4h": stats.priceChange4, "12h": stats.priceChange12, "24h": stats.priceChange24 },
+            } : undefined,
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/quote", requireApiKey, async (req, res) => {
+    try {
+        const tokenId = req.query.tokenId;
+        const side = req.query.side;
+        if (!tokenId || !side)
+            return res.status(400).json({ error: "?tokenId= and ?side=buy|sell required" });
+        const amount = side === "buy" ? req.query.avax : req.query.tokenAmount;
+        if (!amount)
+            return res.status(400).json({ error: side === "buy" ? "?avax= required for buy" : "?tokenAmount= required for sell" });
+        const quote = await builder.getTokenQuote(tokenId, amount, side);
+        res.json(quote);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/portfolio", requireApiKey, async (req, res) => {
+    try {
+        const wallet = req.query.wallet;
+        if (!wallet)
+            return res.status(400).json({ error: "?wallet= required" });
+        const tokenIds = (0, positions_1.getPositions)(wallet);
+        const portfolio = await builder.getPortfolio(wallet, tokenIds);
+        res.json(portfolio);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/market-cap", requireApiKey, async (req, res) => {
+    try {
+        const tokenId = req.query.tokenId;
+        if (!tokenId)
+            return res.status(400).json({ error: "?tokenId= required" });
+        const mcap = await builder.getMarketCap(tokenId);
+        res.json(mcap);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/activity", requireApiKey, async (req, res) => {
+    try {
+        const tokenId = req.query.tokenId;
+        const tokenAddress = req.query.address;
+        const count = Math.min(parseInt(req.query.count) || 20, 50);
+        if (!tokenId && !tokenAddress)
+            return res.status(400).json({ error: "?tokenId= or ?address= required" });
+        // If we have tokenAddress, use Arena API for rich trade data
+        let addr = tokenAddress;
+        if (!addr && tokenId) {
+            try {
+                const info = await builder.getTokenInfo(tokenId);
+                addr = info.tokenAddress;
+            }
+            catch { }
+        }
+        if (addr) {
+            try {
+                const trades = await arenaApi.getTokenTrades(addr, count);
+                const formatted = trades.results.map(t => ({
+                    type: t.token_eth > 0 ? "buy" : "sell",
+                    trader: {
+                        address: t.user_address,
+                        handle: t.user_handle,
+                        name: t.username,
+                        photoUrl: t.user_photo_url,
+                        twitterFollowers: t.user_twitter_followers,
+                    },
+                    tokenAmount: Math.abs(t.token_eth),
+                    costOrReward: {
+                        eth: Math.abs(t.user_eth),
+                        usd: Math.abs(t.user_usd),
+                    },
+                    priceEth: t.price_eth,
+                    priceAfterEth: t.price_after_eth,
+                    txHash: t.transaction_hash,
+                    time: t.create_time ? new Date(parseInt(t.create_time) * 1000).toISOString() : null,
+                    traderCurrentBalance: t.current_balance,
+                }));
+                return res.json({ tokenId: tokenId || null, tokenAddress: addr, trades: formatted });
+            }
+            catch { }
+        }
+        // Fallback to on-chain events
+        if (tokenId) {
+            const activity = await builder.getActivity(tokenId, count);
+            return res.json(activity);
+        }
+        res.status(400).json({ error: "Could not resolve token address" });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Holders endpoint (new — powered by Arena API)
+app.get("/launchpad/holders", requireApiKey, async (req, res) => {
+    try {
+        const tokenAddress = req.query.address;
+        const tokenId = req.query.tokenId;
+        const count = Math.min(parseInt(req.query.count) || 20, 50);
+        let addr = tokenAddress;
+        if (!addr && tokenId) {
+            try {
+                const info = await builder.getTokenInfo(tokenId);
+                addr = info.tokenAddress;
+            }
+            catch { }
+        }
+        if (!addr)
+            return res.status(400).json({ error: "?address= or ?tokenId= required" });
+        const holders = await arenaApi.getTokenHolders(addr, count);
+        const formatted = holders.map(h => ({
+            rank: parseInt(h.rank),
+            address: h.user_address,
+            handle: h.user_handle,
+            name: h.username,
+            photoUrl: h.user_photo_url,
+            twitterFollowers: h.twitter_followers,
+            balance: h.current_balance,
+            unrealizedPnl: { eth: h.unrealized_pnl_eth, usd: h.unrealized_pnl_usd },
+            realizedPnl: { eth: h.realized_pnl_eth, usd: h.realized_pnl_usd },
+            buys: parseInt(h.buy_count),
+            sells: parseInt(h.sell_count),
+        }));
+        res.json({ tokenAddress: addr, holders: formatted });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/overview", requireApiKey, async (req, res) => {
+    try {
+        const overview = await builder.getOverview();
+        res.json(overview);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Global trades feed — all trades across all tokens
+app.get("/launchpad/trades", requireApiKey, async (req, res) => {
+    try {
+        const count = Math.min(parseInt(req.query.count) || 50, 100);
+        const offset = parseInt(req.query.offset) || 0;
+        const trades = await arenaApi.getGlobalTrades(count, offset);
+        const formatted = trades.results.map(t => ({
+            type: t.token_eth > 0 ? "buy" : "sell",
+            token: {
+                name: t.token_name,
+                symbol: t.token_symbol,
+                address: t.token_contract_address,
+                photoUrl: t.photo_url,
+                tokenId: t.token_id,
+            },
+            trader: {
+                address: t.user_address,
+                handle: t.user_handle,
+                name: t.username,
+                photoUrl: t.user_photo_url,
+                twitterFollowers: t.user_twitter_followers,
+            },
+            tokenAmount: Math.abs(t.token_eth),
+            value: {
+                eth: Math.abs(t.user_eth),
+                usd: Math.abs(t.user_usd),
+            },
+            priceEth: t.price_eth,
+            txHash: t.transaction_hash,
+            time: t.create_time ? new Date(parseInt(t.create_time) * 1000).toISOString() : null,
+        }));
+        res.json({ count: formatted.length, offset, trades: formatted });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// Trading endpoints
+app.get("/launchpad/build/buy", requireApiKey, async (req, res) => {
+    try {
+        const wallet = req.query.wallet;
+        const tokenId = req.query.tokenId;
+        const avax = req.query.avax;
+        const slippage = req.query.slippage;
+        if (!wallet || !tokenId || !avax)
+            return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?avax= required" });
+        const tx = await builder.buildLaunchpadBuyTx(wallet, tokenId, avax, slippage ? Number(slippage) : undefined);
+        // Track position for portfolio
+        (0, positions_1.trackPosition)(wallet, Number(tokenId));
+        res.json(tx);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get("/launchpad/build/sell", requireApiKey, async (req, res) => {
+    try {
+        const wallet = req.query.wallet;
+        const tokenId = req.query.tokenId;
+        const amount = req.query.amount;
+        const slippage = req.query.slippage;
+        if (!wallet || !tokenId || !amount)
+            return res.status(400).json({ error: "?wallet=, ?tokenId=, and ?amount= required" });
+        const txs = await builder.buildLaunchpadSellTx(wallet, tokenId, amount, slippage ? Number(slippage) : undefined);
+        // If selling max, remove position tracking
+        if (amount === "max")
+            (0, positions_1.removePosition)(wallet, Number(tokenId));
+        res.json({ transactions: txs });
     }
     catch (err) {
         res.status(500).json({ error: err.message });

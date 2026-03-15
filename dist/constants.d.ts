@@ -10,4 +10,12 @@ export declare const ERC20_ABI: string[];
 export declare const ARENA_STAKING_ABI: string[];
 export declare const LB_ROUTER_ABI: string[];
 export declare const LB_QUOTER_ABI: string[];
+export declare const LAUNCH_CONTRACT = "0x8315f1eb449Dd4B779495C3A0b05e5d194446c6e";
+export declare const TOKEN_MANAGER = "0x2196e106af476f57618373ec028924767c758464";
+export declare const AVAX_HELPER = "0x03f1a18519abedbef210fa44e13b71fec01b8dfa";
+export declare const ARENA_PAIRED_THRESHOLD = 100000000000n;
+export declare const GRANULARITY_SCALER: bigint;
+export declare const LAUNCH_CONTRACT_ABI: string[];
+export declare const TOKEN_MANAGER_ABI: string[];
+export declare const AVAX_HELPER_ABI: string[];
 //# sourceMappingURL=constants.d.ts.map
