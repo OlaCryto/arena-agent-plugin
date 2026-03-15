@@ -470,6 +470,44 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .ep-d { font-size: 0.72rem; color: #888; text-align: right; }
 @media (max-width: 833px) { .ep-d { display: none; } }
 
+/* ═══ SDK ═══ */
+.sdk { padding: 6vw var(--gutter); background: var(--bg-raised); }
+@media (min-width: 834px) { .sdk { padding: 4.5vw var(--gutter); } }
+
+.sdk-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+@media (min-width: 834px) { .sdk-grid { grid-template-columns: 1fr 1fr; gap: 2rem; } }
+
+.sdk-install {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 0.6rem;
+  padding: 1.2rem; font-family: var(--mono); font-size: 0.82rem; color: var(--green);
+  position: relative; overflow: hidden;
+}
+.sdk-install .sdk-prompt { color: var(--text-muted); user-select: none; }
+.sdk-install .sdk-cmd { color: var(--green); }
+
+.sdk-code {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 0.6rem;
+  padding: 1.2rem; font-family: var(--mono); font-size: 0.72rem; line-height: 1.7;
+  color: var(--text-mid); overflow-x: auto;
+}
+.sdk-code .kw { color: var(--purple); }
+.sdk-code .str { color: var(--green); }
+.sdk-code .fn { color: var(--blue); }
+.sdk-code .cm { color: var(--text-muted); }
+.sdk-code .vr { color: var(--accent); }
+
+.sdk-features { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+@media (max-width: 833px) { .sdk-features { grid-template-columns: 1fr; } }
+
+.sdk-feat {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; color: var(--text-mid);
+}
+.sdk-feat::before {
+  content: ''; width: 0.3rem; height: 0.3rem; border-radius: 50%;
+  background: var(--green); flex-shrink: 0;
+}
+
 /* ═══ ROADMAP ═══ */
 .roadmap { padding: 6vw var(--gutter); }
 @media (min-width: 834px) { .roadmap { padding: 4.5vw var(--gutter); } }
@@ -559,6 +597,7 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
       <a href="#features" class="nav-link">Features</a>
       <a href="#activity" class="nav-link">Activity</a>
       <a href="#agents" class="nav-link">Agents</a>
+      <a href="#sdk" class="nav-link">SDK</a>
       <a href="#endpoints" class="nav-link">API</a>
       <a href="#roadmap" class="nav-link">Roadmap</a>
       <a href="https://github.com/ArenaSocialFi/arena-agent-plugin" target="_blank" class="nav-link">GitHub</a>
@@ -697,6 +736,43 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
   </div>
 </section>
 
+<!-- SDK -->
+<section class="sdk" id="sdk">
+  <div class="sh">
+    <h2 class="sh-title">SDK</h2>
+    <div class="sh-badge">npm install logiqical</div>
+  </div>
+  <div class="sdk-grid">
+    <div>
+      <div class="sdk-install rv">
+        <span class="sdk-prompt">$ </span><span class="sdk-cmd">npm install logiqical</span>
+      </div>
+      <div class="sdk-features rv d1">
+        <div class="sdk-feat">Zero config — just pass wallet</div>
+        <div class="sdk-feat">Auto-registers API key</div>
+        <div class="sdk-feat">Full TypeScript types</div>
+        <div class="sdk-feat">JSDoc for AI agents</div>
+        <div class="sdk-feat">CJS + ESM builds</div>
+        <div class="sdk-feat">Zero dependencies</div>
+      </div>
+    </div>
+    <div class="sdk-code rv d2"><span class="kw">import</span> { <span class="vr">LogiqicalClient</span> } <span class="kw">from</span> <span class="str">"logiqical"</span>;
+
+<span class="kw">const</span> <span class="vr">client</span> = <span class="kw">new</span> <span class="fn">LogiqicalClient</span>({ <span class="str">wallet</span>: <span class="str">"0x..."</span> });
+
+<span class="cm">// discover tokens</span>
+<span class="kw">const</span> tokens = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">launchpad</span>.<span class="fn">getRecent</span>(10);
+
+<span class="cm">// swap any pair</span>
+<span class="kw">const</span> tx = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">dex</span>.<span class="fn">buildSwap</span>(
+  wallet, <span class="str">"AVAX"</span>, <span class="str">"USDC"</span>, <span class="str">"1.0"</span>
+);
+
+<span class="cm">// broadcast signed tx</span>
+<span class="kw">await</span> <span class="vr">client</span>.<span class="fn">broadcast</span>(signedTx);</div>
+  </div>
+</section>
+
 <!-- ACTIVITY -->
 <section class="activity" id="activity">
   <div class="sh">
@@ -828,8 +904,8 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
       <div class="rm-col-label future"><span class="rm-dot"></span> On the Horizon</div>
       <div class="rm-card">
         <div class="rm-card-title">Logiqical SDK</div>
-        <div class="rm-card-desc">npm package. Agent launches and instantly knows everything — no prompts needed. Self-configuring.</div>
-        <div class="rm-status planned">Planned</div>
+        <div class="rm-card-desc">npm install logiqical — agent launches and instantly knows everything. Zero config, fully typed, auto-registers.</div>
+        <div class="rm-status live">Live on npm</div>
       </div>
       <div class="rm-card">
         <div class="rm-card-title">Self-Improving Agents</div>
