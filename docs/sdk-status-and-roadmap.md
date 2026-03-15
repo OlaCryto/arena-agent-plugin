@@ -1,12 +1,12 @@
-# Arena Agent SDK — Current Status & Roadmap
+# Arena Agent Plugin — Status & Roadmap
 
-**The infrastructure that makes Arena the first DeFi ecosystem purpose-built for AI agents.**
+**Infrastructure for AI agents to interact with the Arena ecosystem on Avalanche.**
 
 ---
 
 ## What's Live Now (Production — Deployed on Railway)
 
-### 1. ARENA Staking Plugin
+### 1. ARENA Staking
 
 | Feature | Status | Endpoint |
 |---------|--------|----------|
@@ -25,7 +25,7 @@
 
 ---
 
-### 2. Launchpad Trading Plugin
+### 2. Launchpad Trading
 
 #### Discovery — Find tokens to trade
 
@@ -57,6 +57,7 @@
 |---------|--------|----------|
 | Buy any launchpad token (auto-routes AVAX/ARENA paired) | Live | GET /launchpad/build/buy |
 | Sell any launchpad token (approve + sell) | Live | GET /launchpad/build/sell |
+| **Buy/sell graduated tokens (auto-routes via Pharaoh DEX)** | **Live** | Same endpoints |
 | Portfolio tracking with real-time PnL | Live | GET /launchpad/portfolio |
 | Agent instructions | Live | GET /launchpad/agent-instructions |
 
@@ -64,11 +65,12 @@
 - Launch Contract (0x8315...) — 112,000+ AVAX-paired tokens
 - Token Manager (0x2196...) — 3,700+ ARENA-paired tokens
 - AVAX Helper (0x03f1...) — auto-converts AVAX↔ARENA for ARENA-paired tokens
+- Pharaoh DEX — graduated tokens auto-route through Pharaoh aggregator
 - Auto-detection: tokenId < 100B = AVAX-paired, >= 100B = ARENA-paired
 
 ---
 
-### 3. Swap Plugin
+### 3. ARENA Swap
 
 | Feature | Status | Endpoint |
 |---------|--------|----------|
@@ -82,47 +84,68 @@
 
 ---
 
-### 4. Core Infrastructure
+### 4. General DEX Swaps (LFJ)
+
+| Feature | Status | Endpoint |
+|---------|--------|----------|
+| Swap any token pair on Avalanche | Live | GET /dex/build/swap |
+| Quote any token pair | Live | GET /dex/quote |
+| 14 pre-loaded tokens + any address | Live | GET /dex/tokens |
+| Look up any ERC-20 on-chain | Live | GET /dex/token-info |
+| Check balance of any token | Live | GET /dex/balance |
+| Agent instructions | Live | GET /dex/agent-instructions |
+
+**Supported tokens:** AVAX, USDC, USDT, BTC.b, WETH.e, sAVAX, JOE, ARENA, GMX, COQ, PHAR, USDC.e, USDT.e, WAVAX — plus any token by contract address.
+
+**Swap types:**
+- AVAX → Token (1 tx)
+- Token → AVAX (approve + swap)
+- Token → Token (approve + swap, auto-routes through WAVAX)
+- `amount=max` support with gas reservation
+
+**Tested on mainnet:** AVAX↔USDC round-trip confirmed.
+
+---
+
+### 5. Graduated Token Trading (Pharaoh DEX)
+
+| Feature | Status | Endpoint |
+|---------|--------|----------|
+| Buy graduated tokens via Pharaoh | Live | GET /launchpad/build/buy |
+| Sell graduated tokens via Pharaoh | Live | GET /launchpad/build/sell |
+| Auto-detection (lpDeployed check) | Live | Automatic |
+
+**How it works:** When an agent calls `/launchpad/build/buy` or `/launchpad/build/sell` for a graduated token, the API detects `lpDeployed=true` and automatically routes the swap through Pharaoh DEX. Same endpoints, no agent changes needed. Response includes `graduated: true` flag.
+
+**Tested on mainnet:** GLADIUS buy + sell round-trip confirmed, GYM and BANDS quotes confirmed.
+
+---
+
+### 6. Core Infrastructure
 
 | Feature | Status |
 |---------|--------|
+| Modular SDK-ready architecture (core, swap, staking, launchpad, dex) | Live |
 | Unified API key (one key for everything) | Live |
 | Wallet-based key dedup (no duplicate registrations) | Live |
 | Self-registration for agents | Live |
 | Transaction broadcasting | Live |
 | Trustless design (unsigned txs, agent signs locally) | Live |
 | Server-side position tracking | Live |
-| 5 smart contract integrations | Live |
-| 3 agent instruction prompts | Live |
+| 7 smart contract integrations + Pharaoh aggregator | Live |
+| 4 agent instruction prompts (staking, swap, launchpad, dex) | Live |
+| MCP server for Claude agents | Live |
 | Deployed on Railway | Live |
 
 ---
 
-## Total: 30+ Endpoints, All Live
+## Total: 40+ Endpoints, All Live
 
 ---
 
 ## Roadmap — What's Coming
 
-### Phase 1: General DEX Swaps (LFJ)
-
-**What:** Extend swap capabilities beyond ARENA. Agents can swap ANY token pair on Avalanche through LFJ (Trader Joe).
-
-**Why:** Agents need to move between tokens freely — not just ARENA. If an agent profits on a launchpad trade and wants to swap into USDC or another token, it needs general DEX access. This keeps agents in our ecosystem for ALL their trading.
-
-**How:** Direct on-chain contract interaction with LFJ's LBRouter and LBQuoter. No API middleman. We query the quoter for the best route, build the unsigned tx, agent signs and broadcasts.
-
-**New endpoints:**
-- GET /dex/quote?tokenIn=0x...&tokenOut=0x...&amount=1.0
-- GET /dex/build/swap?wallet=0x...&tokenIn=0x...&tokenOut=0x...&amount=1.0
-- Support native AVAX as tokenIn/tokenOut
-- Auto-approve if needed (return [approve, swap] txs)
-
-**Impact:** Agents become full DeFi participants on Avalanche, not limited to Arena tokens. Massive utility increase.
-
----
-
-### Phase 2: Token Launching
+### Phase 1: Token Launching
 
 **What:** Agents can create their own tokens on Arena's bonding curve.
 
@@ -134,28 +157,11 @@
 - GET /launchpad/build/create?wallet=0x...&name=X&symbol=X&description=X&creatorFee=250
 - GET /launchpad/my-tokens?wallet=0x... — tokens the agent created + their stats
 
-**Impact:** AI agents become creators on Arena. Imagine an agent that spots a trending narrative, launches a token around it, and manages it. Every launch drives platform activity.
+**Impact:** AI agents become creators on Arena. Imagine an agent that spots a trending narrative, launches a token around it, and manages it.
 
 ---
 
-### Phase 3: Graduated Token Trading via DEX
-
-**What:** When a token graduates from Arena's bonding curve to a DEX, agents can continue trading it seamlessly.
-
-**Why:** Right now agents lose access to a token after graduation — our API rejects trades with "token graduated, trade on DEX instead." That's a dead end. Agents should be able to hold positions through graduation and keep trading.
-
-**How:** Detect graduated tokens (lpDeployed=true), find their DEX pair address from token params, route trades through LFJ instead of the bonding curve. Same endpoints, automatic routing.
-
-**Changes:**
-- /launchpad/build/buy and /build/sell auto-detect graduated tokens and route through DEX
-- /launchpad/quote works for both bonding curve and graduated tokens
-- Portfolio tracks positions through graduation
-
-**Impact:** Agents can ride winners from bonding curve through graduation to DEX — full lifecycle trading instead of forced exits.
-
----
-
-### Phase 4: Perps Trading
+### Phase 2: Perps Trading
 
 **What:** Full integration with Arena's perpetual futures trading.
 
@@ -171,52 +177,47 @@
 - GET /perps/funding-rates
 - Agent instructions for perps trading
 
-**Impact:** Arena's full product suite in one SDK. Agents can trade trenches (launchpad) AND perps from the same interface.
+**Impact:** Arena's full product suite in one plugin. Agents can trade trenches (launchpad) AND perps from the same interface.
 
 ---
 
-### Phase 5: Signal & Event Monitoring
+### Phase 3: Signal & Event Monitoring
 
 **What:** Real-time push notifications so agents react instead of polling.
 
-**Why:** Right now agents have to repeatedly call our discovery endpoints to find new opportunities. That's slow and wasteful. Agents should be notified instantly when something happens.
+**Why:** Right now agents have to repeatedly call discovery endpoints. That's slow. Agents should be notified instantly when something happens.
 
 **How:** WebSocket connections and/or webhook registrations. Agents subscribe to events and get pushed notifications.
 
 **New capabilities:**
 - Webhook: token about to graduate (graduation % > 90%)
 - Webhook: volume spike on a token (5m volume > 2x average)
-- Webhook: new token launch matching criteria (creator followers > 1000, etc.)
+- Webhook: new token launch matching criteria
 - Webhook: large trade alert (whale buy/sell above threshold)
-- Webhook: perp liquidation events
 - WebSocket: real-time trade feed
 
-**Impact:** Agents become proactive — they don't search for opportunities, opportunities come to them. Faster reaction = better trades.
+**Impact:** Agents become proactive — opportunities come to them. Faster reaction = better trades.
 
 ---
 
-### Phase 6: Agent Performance Analytics
+### Phase 4: Agent Performance Analytics
 
 **What:** Track agent performance over time — win rate, PnL, best strategies, worst trades.
 
-**Why:** Agents that can analyze their own performance can improve. This is the foundation for self-improving trading agents.
-
-**How:** Log every trade an agent makes through our API. Aggregate into performance metrics. Expose via endpoints.
+**Why:** Agents that can analyze their own performance can improve. Foundation for self-improving trading agents.
 
 **New endpoints:**
 - GET /analytics/performance?wallet=0x... — overall PnL, win rate, avg hold time
-- GET /analytics/trades?wallet=0x... — full trade history with entry/exit prices
+- GET /analytics/trades?wallet=0x... — full trade history
 - GET /analytics/best-strategies — what's working across all agents (anonymized)
-
-**Impact:** Agents learn from their own trading. Over time they get better — not just executing, but improving.
 
 ---
 
-### Phase 7: The SDK Package
+### Phase 5: SDK Package
 
 **What:** Package everything into a self-contained npm module. No hosted API dependency.
 
-**Why:** The Arena technician's concern was right — agents shouldn't depend on a third-party server. The SDK runs locally with the agent. Everything is direct contract interaction + on-chain data.
+**Why:** Agents shouldn't depend on a third-party server. The SDK runs locally with the agent. Everything is direct contract interaction.
 
 **How:**
 ```javascript
@@ -227,50 +228,17 @@ const agent = new ArenaAgent({
   rpc: "https://your-rpc.com"
 });
 
-// The agent now knows everything about Arena
-// No prompts. No instructions. No external API.
-
-// Discover
 const trending = await agent.launchpad.topVolume("1h", 10);
-
-// Research
-const token = await agent.launchpad.getToken(trending[0].tokenId);
-const holders = await agent.launchpad.getHolders(token.address);
-
-// Trade
-const buyTx = await agent.launchpad.buildBuy(token.tokenId, "0.5");
-const signed = await wallet.signTransaction(buyTx);
-await agent.broadcast(signed);
-
-// Stake
-await agent.staking.buyAndStake("1.0");
-
-// Swap any token
+const buyTx = await agent.launchpad.buildBuy(trending[0].tokenId, "0.5");
 await agent.dex.swap("AVAX", "USDC", "10.0");
-
-// Launch a token
-await agent.launchpad.createToken({
-  name: "My Token",
-  symbol: "MTK",
-  description: "Launched by an AI agent",
-  creatorFee: 250
-});
-
-// Perps
-await agent.perps.openLong("AVAX-USD", "100", 5);
+await agent.staking.buyAndStake("1.0");
 ```
-
-**Impact:** Any developer adds full Arena capabilities to their agent in 3 lines of code. Zero server dependency. The agent launches and instantly knows everything — trenches, perps, token launching, staking, DEX swaps. Self-configuring. Self-improving over time.
 
 ---
 
-### Phase 8: Multi-Chain Expansion
+### Phase 6: Multi-Chain Expansion
 
-**What:** Extend the SDK beyond Avalanche to any chain Arena expands to.
-
-**Why:** If Arena launches on other chains (or bridges), the SDK should follow. Future-proofing.
-
-**How:** Abstract chain-specific logic (RPC, contract addresses, DEX routing) behind a chain config. Same agent interface, different chain.
+**What:** Extend beyond Avalanche to any chain Arena expands to.
 
 ```javascript
 const agent = new ArenaAgent({
@@ -279,26 +247,25 @@ const agent = new ArenaAgent({
 });
 ```
 
-**Impact:** The SDK scales with Arena. One codebase, any chain.
-
 ---
 
 ## Summary
 
 | Phase | Feature | Status |
 |-------|---------|--------|
-| - | ARENA Staking (buy, sell, stake, unstake) | **LIVE** |
-| - | Launchpad Trading (discover, research, trade) | **LIVE** |
-| - | ARENA/AVAX Swaps | **LIVE** |
-| - | Core Infrastructure (auth, broadcasting, tracking) | **LIVE** |
-| 1 | General DEX Swaps (any token on LFJ) | Planned |
-| 2 | Token Launching (agents create tokens) | Planned |
-| 3 | Graduated Token Trading via DEX | Planned |
-| 4 | Perps Trading | Planned |
-| 5 | Signal & Event Monitoring (webhooks) | Planned |
-| 6 | Agent Performance Analytics | Planned |
-| 7 | SDK Package (npm, no server dependency) | Planned |
-| 8 | Multi-Chain Expansion | Planned |
+| — | ARENA Staking (buy, sell, stake, unstake) | **DONE** |
+| — | Launchpad Trading (discover, research, trade) | **DONE** |
+| — | ARENA/AVAX Swaps | **DONE** |
+| — | General DEX Swaps (any token via LFJ) | **DONE** |
+| — | Graduated Token Trading (via Pharaoh DEX) | **DONE** |
+| — | Modular SDK-ready architecture | **DONE** |
+| — | Core Infrastructure (auth, broadcasting, tracking) | **DONE** |
+| 1 | Token Launching (agents create tokens) | Planned |
+| 2 | Perps Trading | Planned |
+| 3 | Signal & Event Monitoring (webhooks/websockets) | Planned |
+| 4 | Agent Performance Analytics | Planned |
+| 5 | SDK Package (npm, no server dependency) | Planned |
+| 6 | Multi-Chain Expansion | Planned |
 
 ---
 
