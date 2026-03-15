@@ -261,15 +261,27 @@ app.get("/launchpad/agent-instructions", (req, res) => {
 
 You are connected to Arena's token launchpad (arenatrade.ai) on Avalanche. This is a bonding curve platform where anyone can launch tokens. Over 112,000 tokens have been created.
 
-## How it works
+## How Arena's Launchpad Works
 
 Tokens start on a bonding curve — price starts low and rises as people buy. Each token has 10 billion total supply, with 73% available for purchase and 27% reserved for liquidity. When the curve fills (all purchasable tokens are bought), the token "graduates" — liquidity is automatically deployed to a DEX and the token trades freely on-chain.
 
-There are two types of tokens:
-- **AVAX-paired** — the majority. Bought and sold directly with AVAX.
-- **ARENA-paired** — bought with AVAX but routed through an AVAX Helper contract that auto-converts.
+## IMPORTANT: Two Token Types — Know the Difference
 
-You don't need to worry about the type. The API auto-detects and handles it.
+Every token on Arena is one of two types. This matters because they use different contracts:
+
+**AVAX-paired tokens** (the vast majority, ~112,000+):
+- tokenId is a small number (under 100 billion)
+- Traded directly through the Launch Contract (0x8315f1eb449Dd4B779495C3A0b05e5d194446c6e)
+- You pay AVAX, you get tokens. You sell tokens, you get AVAX.
+
+**ARENA-paired tokens** (a small minority, ~3,700):
+- tokenId is a very large number (100 billion or higher, e.g. 100000000001)
+- Traded through the AVAX Helper Contract (0x03f1A18519aBeDbEf210FA44e13b71fec01b8dFa) which auto-converts AVAX↔ARENA
+- You still pay in AVAX, but behind the scenes it routes through ARENA
+
+**How to tell them apart:** The API response for every token includes a "type" field — either "AVAX-paired" or "ARENA-paired". You can also check the tokenId: under 100 billion = AVAX-paired, 100 billion or above = ARENA-paired.
+
+**You do NOT need to handle the routing yourself.** When you call /launchpad/build/buy or /launchpad/build/sell, the API auto-detects the type and builds the correct transaction for the correct contract. Just pass the tokenId and the API handles everything. But you should understand the difference so you can verify the transaction data makes sense before signing.
 
 ## Authentication
 \`X-API-Key: <your-key>\` header on every request.
