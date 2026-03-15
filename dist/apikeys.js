@@ -20,10 +20,16 @@ function loadKeys() {
 function saveKeys(keys) {
     fs_1.default.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2));
 }
-function generateApiKey(name) {
-    const key = "arena_" + (0, crypto_1.randomBytes)(24).toString("hex");
+function generateApiKey(name, wallet) {
     const keys = loadKeys();
-    keys.push({ key, name, createdAt: new Date().toISOString() });
+    // If wallet provided, check if already registered — return existing key
+    if (wallet) {
+        const existing = keys.find((k) => k.wallet?.toLowerCase() === wallet.toLowerCase());
+        if (existing)
+            return existing.key;
+    }
+    const key = "arena_" + (0, crypto_1.randomBytes)(24).toString("hex");
+    keys.push({ key, name, wallet: wallet?.toLowerCase(), createdAt: new Date().toISOString() });
     saveKeys(keys);
     return key;
 }

@@ -8,6 +8,7 @@ const KEYS_FILE = fs.existsSync("/data") ? "/data/api-keys.json" : path.join(pro
 interface ApiKeyEntry {
   key: string;
   name: string;
+  wallet?: string;
   createdAt: string;
 }
 
@@ -20,10 +21,17 @@ function saveKeys(keys: ApiKeyEntry[]) {
   fs.writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2));
 }
 
-export function generateApiKey(name: string): string {
-  const key = "arena_" + randomBytes(24).toString("hex");
+export function generateApiKey(name: string, wallet?: string): string {
   const keys = loadKeys();
-  keys.push({ key, name, createdAt: new Date().toISOString() });
+
+  // If wallet provided, check if already registered — return existing key
+  if (wallet) {
+    const existing = keys.find((k) => k.wallet?.toLowerCase() === wallet.toLowerCase());
+    if (existing) return existing.key;
+  }
+
+  const key = "arena_" + randomBytes(24).toString("hex");
+  keys.push({ key, name, wallet: wallet?.toLowerCase(), createdAt: new Date().toISOString() });
   saveKeys(keys);
   return key;
 }

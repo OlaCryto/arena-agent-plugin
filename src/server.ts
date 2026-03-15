@@ -61,8 +61,8 @@ app.get("/register", (req, res) => {
   const wallet = req.query.wallet as string;
   const name = req.query.name as string || wallet;
   if (!wallet) return res.status(400).json({ error: "?wallet=<your-wallet-address> required" });
-  const key = generateApiKey(name);
-  res.json({ key, name, wallet, message: "Save this API key — it won't be shown again. Include it as X-API-Key header in all future requests." });
+  const key = generateApiKey(name, wallet);
+  res.json({ key, name, wallet, message: "Save this API key. It works for ALL Arena endpoints — staking, launchpad trading, everything. Include it as X-API-Key header in all requests." });
 });
 
 app.get("/agent-instructions", (req, res) => {
@@ -273,7 +273,8 @@ You don't need to worry about the type. The API auto-detects and handles it.
 
 ## Authentication
 \`X-API-Key: <your-key>\` header on every request.
-Register: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
+If you already have an API key from the Arena staking plugin, use that same key — it works for everything.
+If not, register: GET ${base}/register?wallet=<your-wallet>&name=<your-name>
 Base: ${base}
 
 ---
