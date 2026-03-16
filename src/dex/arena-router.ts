@@ -120,8 +120,8 @@ export async function buildArenaSwapBuyTx(
     data,
     value: ethers.toBeHex(avaxAmountWei, 32),
     chainId: 43114,
-    gas: "600000",
-    gasLimit: "600000",
+    gas: "1000000",
+    gasLimit: "1000000",
     description: `Buy ~${displayOut} ${symbol} with ${displayIn} AVAX via Arena`,
   };
 
@@ -199,8 +199,8 @@ export async function buildArenaSwapSellTx(
     data: sellData,
     value: "0x0",
     chainId: 43114,
-    gas: "600000",
-    gasLimit: "600000",
+    gas: "1000000",
+    gasLimit: "1000000",
     description: `Step 2/2: Sell ${displayIn} ${symbol} for ~${displayOut} AVAX via Arena`,
   });
 
