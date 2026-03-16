@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AVAX_HELPER_ABI = exports.TOKEN_MANAGER_ABI = exports.LAUNCH_CONTRACT_ABI = exports.GRANULARITY_SCALER = exports.ARENA_PAIRED_THRESHOLD = exports.AVAX_HELPER = exports.TOKEN_MANAGER = exports.LAUNCH_CONTRACT = exports.LB_QUOTER_ABI = exports.LB_ROUTER_ABI = exports.ARENA_STAKING_ABI = exports.ERC20_ABI = exports.DEFAULT_SLIPPAGE_BPS = exports.LB_QUOTER = exports.LB_ROUTER = exports.ARENA_STAKING = exports.WAVAX = exports.ARENA_TOKEN = exports.RPC_URL = exports.CHAIN_ID = void 0;
+exports.AVAX_HELPER_ABI = exports.TOKEN_MANAGER_ABI = exports.LAUNCH_CONTRACT_ABI = exports.GRANULARITY_SCALER = exports.ARENA_PAIRED_THRESHOLD = exports.AVAX_HELPER = exports.TOKEN_MANAGER = exports.LAUNCH_CONTRACT = exports.LB_QUOTER_ABI = exports.LB_ROUTER_ABI = exports.ARENA_STAKING_ABI = exports.ERC20_ABI = exports.DEFAULT_SLIPPAGE_BPS = exports.DEFAULT_TOKEN_SPLIT = exports.DEFAULT_CREATOR_FEE_BP = exports.AVAX_CURVE_SCALER = exports.AVAX_CURVE_B = exports.AVAX_CURVE_A = exports.ARENA_CURVE_SCALER = exports.ARENA_CURVE_B = exports.ARENA_CURVE_A = exports.ARENA_STATIC_URL = exports.ARENA_GCS_BUCKET = exports.ARENA_SOCIAL_API = exports.ARENA_SWAP_ROUTER = exports.LB_QUOTER = exports.LB_ROUTER = exports.ARENA_STAKING = exports.WAVAX = exports.ARENA_TOKEN = exports.RPC_URL = exports.CHAIN_ID = void 0;
 // Avalanche C-Chain
 exports.CHAIN_ID = 43114;
 exports.RPC_URL = process.env.RPC_URL || "https://hardworking-dawn-sailboat.avalanche-mainnet.quiknode.pro/022a54c6e74f3463167816f37d1f2ad5ae91af21/ext/bc/C/rpc/";
@@ -12,6 +12,37 @@ exports.ARENA_STAKING = "0xeffb809d99142ce3b51c1796c096f5b01b4aaec4";
 // LFJ (Trader Joe) V2.2 on Avalanche C-Chain
 exports.LB_ROUTER = "0x18556DA13313f3532c54711497A8FedAC273220E";
 exports.LB_QUOTER = "0x9A550a522BBaDFB69019b0432800Ed17855A51C3";
+// Arena DEX router (Yield Yak + Arena V4 pools)
+exports.ARENA_SWAP_ROUTER = process.env.ARENA_SWAP_ROUTER || "0xDE9D7290959b6060860b983b32f2d65b2701EBC2";
+// Arena Social API + media upload endpoints (used by launch tooling)
+exports.ARENA_SOCIAL_API = process.env.ARENA_SOCIAL_API || "https://api.starsarena.com";
+exports.ARENA_GCS_BUCKET = process.env.ARENA_GCS_BUCKET || "https://storage.googleapis.com/static.starsarena.com";
+exports.ARENA_STATIC_URL = process.env.ARENA_STATIC_URL || "https://static.starsarena.com/";
+// Launch defaults (overridable via env for protocol upgrades)
+const parseBigIntEnv = (value, fallback) => {
+    if (!value)
+        return fallback;
+    try {
+        return BigInt(value);
+    }
+    catch {
+        return fallback;
+    }
+};
+const parseIntEnv = (value, fallback) => {
+    if (!value)
+        return fallback;
+    const n = Number.parseInt(value, 10);
+    return Number.isFinite(n) ? n : fallback;
+};
+exports.ARENA_CURVE_A = parseBigIntEnv(process.env.ARENA_CURVE_A, 32000n);
+exports.ARENA_CURVE_B = parseIntEnv(process.env.ARENA_CURVE_B, 32);
+exports.ARENA_CURVE_SCALER = parseBigIntEnv(process.env.ARENA_CURVE_SCALER, 10n ** 18n);
+exports.AVAX_CURVE_A = parseBigIntEnv(process.env.AVAX_CURVE_A, 32000n);
+exports.AVAX_CURVE_B = parseIntEnv(process.env.AVAX_CURVE_B, 32);
+exports.AVAX_CURVE_SCALER = parseBigIntEnv(process.env.AVAX_CURVE_SCALER, 10n ** 18n);
+exports.DEFAULT_CREATOR_FEE_BP = parseIntEnv(process.env.DEFAULT_CREATOR_FEE_BP, 250);
+exports.DEFAULT_TOKEN_SPLIT = parseIntEnv(process.env.DEFAULT_TOKEN_SPLIT, 27);
 // Default slippage: 5% (agents may have delay between quote and broadcast)
 exports.DEFAULT_SLIPPAGE_BPS = 500;
 // ABIs — minimal interfaces for the functions we need

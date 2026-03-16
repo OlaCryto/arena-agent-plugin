@@ -13,6 +13,42 @@ export const ARENA_STAKING = "0xeffb809d99142ce3b51c1796c096f5b01b4aaec4";
 export const LB_ROUTER = "0x18556DA13313f3532c54711497A8FedAC273220E";
 export const LB_QUOTER = "0x9A550a522BBaDFB69019b0432800Ed17855A51C3";
 
+
+// Arena DEX router (Yield Yak + Arena V4 pools)
+export const ARENA_SWAP_ROUTER = process.env.ARENA_SWAP_ROUTER || "0xDE9D7290959b6060860b983b32f2d65b2701EBC2";
+
+// Arena Social API + media upload endpoints (used by launch tooling)
+export const ARENA_SOCIAL_API = process.env.ARENA_SOCIAL_API || "https://api.starsarena.com";
+export const ARENA_GCS_BUCKET = process.env.ARENA_GCS_BUCKET || "https://storage.googleapis.com/static.starsarena.com";
+export const ARENA_STATIC_URL = process.env.ARENA_STATIC_URL || "https://static.starsarena.com/";
+
+// Launch defaults (overridable via env for protocol upgrades)
+const parseBigIntEnv = (value: string | undefined, fallback: bigint): bigint => {
+  if (!value) return fallback;
+  try {
+    return BigInt(value);
+  } catch {
+    return fallback;
+  }
+};
+
+const parseIntEnv = (value: string | undefined, fallback: number): number => {
+  if (!value) return fallback;
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+export const ARENA_CURVE_A = parseBigIntEnv(process.env.ARENA_CURVE_A, 32000n);
+export const ARENA_CURVE_B = parseIntEnv(process.env.ARENA_CURVE_B, 32);
+export const ARENA_CURVE_SCALER = parseBigIntEnv(process.env.ARENA_CURVE_SCALER, 10n ** 18n);
+
+export const AVAX_CURVE_A = parseBigIntEnv(process.env.AVAX_CURVE_A, 32000n);
+export const AVAX_CURVE_B = parseIntEnv(process.env.AVAX_CURVE_B, 32);
+export const AVAX_CURVE_SCALER = parseBigIntEnv(process.env.AVAX_CURVE_SCALER, 10n ** 18n);
+
+export const DEFAULT_CREATOR_FEE_BP = parseIntEnv(process.env.DEFAULT_CREATOR_FEE_BP, 250);
+export const DEFAULT_TOKEN_SPLIT = parseIntEnv(process.env.DEFAULT_TOKEN_SPLIT, 27);
+
 // Default slippage: 5% (agents may have delay between quote and broadcast)
 export const DEFAULT_SLIPPAGE_BPS = 500;
 

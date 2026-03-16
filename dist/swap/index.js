@@ -81,7 +81,7 @@ class SwapModule {
         return {
             to: ethers_1.ethers.getAddress(ARENA_ROUTER),
             data,
-            value: ethers_1.ethers.toBeHex(amountIn),
+            value: ethers_1.ethers.toBeHex(amountIn, 32),
             chainId: 43114,
             gas: "500000",
             gasLimit: "500000",

@@ -60,7 +60,7 @@ async function buildPharaohSwapTx(wallet, fromAddress, toAddress, amountWei, fro
     txs.push({
         to: ethers_1.ethers.getAddress(quote.transaction.to),
         data: quote.transaction.data,
-        value: ethers_1.ethers.toBeHex(BigInt(quote.transaction.value)),
+        value: ethers_1.ethers.toBeHex(BigInt(quote.transaction.value), 32),
         chainId: 43114,
         gas: quote.transaction.gas,
         gasLimit: quote.transaction.gas,

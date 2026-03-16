@@ -161,7 +161,7 @@ class DexModule {
             txs.push({
                 to: ethers_1.ethers.getAddress(constants_1.LB_ROUTER),
                 data,
-                value: ethers_1.ethers.toBeHex(amountIn),
+                value: ethers_1.ethers.toBeHex(amountIn, 32),
                 chainId: 43114,
                 gas: "500000",
                 gasLimit: "500000",
