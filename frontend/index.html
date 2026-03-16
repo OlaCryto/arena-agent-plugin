@@ -508,6 +508,88 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: var(--green); flex-shrink: 0;
 }
 
+/* Steps */
+.sdk-steps { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0 2rem; }
+@media (min-width: 834px) { .sdk-steps { flex-direction: row; gap: 0; } }
+
+.sdk-step {
+  display: flex; gap: 0.8rem; padding: 1rem 0;
+  border-bottom: 1px solid var(--border); flex: 1;
+}
+@media (min-width: 834px) {
+  .sdk-step { flex-direction: column; border-bottom: none; border-right: 1px solid var(--border); padding: 0 1.5rem; }
+  .sdk-step:last-child { border-right: none; }
+  .sdk-step:first-child { padding-left: 0; }
+}
+
+.sdk-step-num {
+  width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+  background: var(--accent); color: #fff;
+}
+.sdk-step-body { flex: 1; }
+.sdk-step-title { font-size: 0.95rem; font-weight: 500; margin-bottom: 0.3rem; }
+.sdk-step-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+
+.sdk-step .sdk-install { margin-top: 0.4rem; padding: 0.6rem 0.8rem; font-size: 0.75rem; }
+
+/* Use cases */
+.sdk-use-cases { margin-top: 1.2rem; }
+.sdk-use-label {
+  font-family: var(--mono); font-size: 0.56rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.sdk-use {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.78rem; color: var(--text-mid); padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.sdk-use::before {
+  content: ''; width: 0.3rem; height: 0.3rem; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+
+/* Prompt block */
+.sdk-prompt-block {
+  margin-top: 2rem; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 0.6rem; overflow: hidden;
+}
+.sdk-prompt-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.7rem 1rem; border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.sdk-prompt-label {
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.sdk-prompt-label::before {
+  content: ''; width: 0.35rem; height: 0.35rem; border-radius: 50%; background: var(--accent);
+}
+.sdk-prompt-sub {
+  font-family: var(--mono); font-size: 0.56rem; color: var(--text-muted);
+}
+.sdk-copy-btn {
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 500;
+  color: var(--accent); background: var(--accent-dim);
+  padding: 0.35rem 0.8rem; border-radius: 0.25rem; cursor: pointer;
+  border: 1px solid rgba(255,107,0,0.15); transition: all 0.2s;
+  display: flex; align-items: center; gap: 0.3rem;
+}
+.sdk-copy-btn:hover { background: rgba(255,107,0,0.2); border-color: var(--accent); }
+.sdk-copy-btn.copied { color: var(--green); background: var(--green-dim); border-color: rgba(52,211,153,0.2); }
+
+.sdk-prompt-body {
+  padding: 1rem; font-family: var(--mono); font-size: 0.68rem;
+  line-height: 1.7; color: var(--text-mid); white-space: pre-wrap;
+  max-height: 18rem; overflow-y: auto;
+}
+.sdk-prompt-body::-webkit-scrollbar { width: 4px; }
+.sdk-prompt-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
 /* ═══ ROADMAP ═══ */
 .roadmap { padding: 6vw var(--gutter); }
 @media (min-width: 834px) { .roadmap { padding: 4.5vw var(--gutter); } }
@@ -593,11 +675,11 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
   <div class="nav-bar">
     <a href="#hero" class="nav-logo">Logiqical</a>
     <div class="nav-links">
+      <a href="#sdk" class="nav-link">SDK</a>
       <a href="#modules" class="nav-link">Modules</a>
       <a href="#features" class="nav-link">Features</a>
       <a href="#activity" class="nav-link">Activity</a>
       <a href="#agents" class="nav-link">Agents</a>
-      <a href="#sdk" class="nav-link">SDK</a>
       <a href="#endpoints" class="nav-link">API</a>
       <a href="#roadmap" class="nav-link">Roadmap</a>
       <a href="https://github.com/ArenaSocialFi/arena-agent-plugin" target="_blank" class="nav-link">GitHub</a>
@@ -632,6 +714,163 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
   </div>
   <div class="hero-ticker">
     <div class="ticker-track" id="ticker"></div>
+  </div>
+</section>
+
+<!-- SDK / GET STARTED -->
+<section class="sdk" id="sdk">
+  <div class="sh">
+    <h2 class="sh-title">Get Started</h2>
+    <div class="sh-badge">3 steps to live trading</div>
+  </div>
+
+  <!-- Steps -->
+  <div class="sdk-steps rv">
+    <div class="sdk-step">
+      <div class="sdk-step-num">1</div>
+      <div class="sdk-step-body">
+        <div class="sdk-step-title">Install the SDK</div>
+        <div class="sdk-install">
+          <span class="sdk-prompt">$ </span><span class="sdk-cmd">npm install logiqical</span>
+        </div>
+      </div>
+    </div>
+    <div class="sdk-step">
+      <div class="sdk-step-num">2</div>
+      <div class="sdk-step-body">
+        <div class="sdk-step-title">Initialize with your wallet</div>
+        <div class="sdk-step-desc">Pass your agent's wallet address. The SDK auto-registers an API key on first call — zero config needed.</div>
+      </div>
+    </div>
+    <div class="sdk-step">
+      <div class="sdk-step-num">3</div>
+      <div class="sdk-step-body">
+        <div class="sdk-step-title">Trade</div>
+        <div class="sdk-step-desc">Discover tokens, get quotes, build transactions, sign and broadcast. Your agent is live on Avalanche.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code + Features grid -->
+  <div class="sdk-grid rv d1">
+    <div class="sdk-code"><span class="cm">// Full agent example</span>
+<span class="kw">import</span> { <span class="vr">LogiqicalClient</span> } <span class="kw">from</span> <span class="str">"logiqical"</span>;
+
+<span class="kw">const</span> <span class="vr">client</span> = <span class="kw">new</span> <span class="fn">LogiqicalClient</span>({
+  <span class="str">wallet</span>: <span class="str">"0xYourAgentWallet"</span>
+});
+
+<span class="cm">// Check balances</span>
+<span class="kw">const</span> bal = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">swap</span>.<span class="fn">getBalances</span>(wallet);
+
+<span class="cm">// Discover trending launchpad tokens</span>
+<span class="kw">const</span> hot = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">launchpad</span>.<span class="fn">getTopVolume</span>(<span class="str">"24h"</span>);
+
+<span class="cm">// Buy a token on the bonding curve</span>
+<span class="kw">const</span> buy = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">launchpad</span>.<span class="fn">buildBuy</span>(
+  wallet, tokenId, <span class="str">"0.5"</span>
+);
+
+<span class="cm">// Swap any pair on DEX</span>
+<span class="kw">const</span> swap = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">dex</span>.<span class="fn">buildSwap</span>(
+  wallet, <span class="str">"AVAX"</span>, <span class="str">"USDC"</span>, <span class="str">"1.0"</span>
+);
+
+<span class="cm">// Stake for rewards</span>
+<span class="kw">const</span> stake = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">staking</span>.<span class="fn">buildStake</span>(
+  wallet, <span class="str">"1000"</span>
+);
+
+<span class="cm">// Sign &amp; broadcast each tx</span>
+<span class="kw">await</span> <span class="vr">client</span>.<span class="fn">broadcast</span>(signedTx);</div>
+    <div>
+      <div class="sdk-features">
+        <div class="sdk-feat">Zero config — just pass wallet</div>
+        <div class="sdk-feat">Auto-registers API key</div>
+        <div class="sdk-feat">Full TypeScript types</div>
+        <div class="sdk-feat">JSDoc so AI agents understand every method</div>
+        <div class="sdk-feat">CJS + ESM builds</div>
+        <div class="sdk-feat">Zero runtime dependencies</div>
+        <div class="sdk-feat">4 modules: swap, staking, launchpad, dex</div>
+        <div class="sdk-feat">30+ typed methods</div>
+      </div>
+      <div class="sdk-use-cases rv d2">
+        <div class="sdk-use-label">Built for</div>
+        <div class="sdk-use">Autonomous trading agents</div>
+        <div class="sdk-use">Portfolio management bots</div>
+        <div class="sdk-use">Launchpad snipers &amp; scouts</div>
+        <div class="sdk-use">DeFi automation scripts</div>
+        <div class="sdk-use">Multi-chain agent frameworks</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- One-time agent prompt -->
+  <div class="sdk-prompt-block rv d3">
+    <div class="sdk-prompt-head">
+      <div>
+        <div class="sdk-prompt-label">One-Time Setup Prompt</div>
+        <div class="sdk-prompt-sub">Copy this and paste it into your AI agent to give it full Avalanche trading capabilities</div>
+      </div>
+      <button class="sdk-copy-btn" id="copy-prompt" onclick="copyPrompt()"><i class="hgi-stroke hgi-copy-01"></i> Copy</button>
+    </div>
+    <div class="sdk-prompt-body" id="agent-prompt">You are an autonomous trading agent on Avalanche C-Chain. You have access to the Logiqical SDK which gives you full DeFi capabilities.
+
+## Setup
+```
+npm install logiqical
+```
+```typescript
+import { LogiqicalClient } from "logiqical";
+const client = new LogiqicalClient({ wallet: "YOUR_WALLET_ADDRESS" });
+```
+The SDK auto-registers an API key on your first call. No manual setup needed.
+
+## Your Capabilities
+
+**Token Swaps (client.swap)**
+- client.swap.getBalances(wallet) — check AVAX and ARENA balances
+- client.swap.quote(avax) — quote AVAX → ARENA
+- client.swap.sellQuote(arena) — quote ARENA → AVAX
+- client.swap.buildBuy(wallet, avax, slippage?) — build buy tx
+- client.swap.buildSell(wallet, amount, slippage?) — build sell tx ("max" to sell all)
+
+**Staking (client.staking)**
+- client.staking.getInfo(wallet) — check staked amount, rewards, APY
+- client.staking.buildStake(wallet, amount) — stake ARENA tokens
+- client.staking.buildBuyAndStake(wallet, avax, slippage?) — buy + stake in one flow
+- client.staking.buildUnstake(wallet, amount) — unstake and claim
+
+**Launchpad (client.launchpad)**
+- client.launchpad.getRecent(count?, type?) — discover new tokens
+- client.launchpad.getTopVolume(timeframe?, count?) — trending tokens
+- client.launchpad.getGraduating(count?) — tokens about to graduate to DEX
+- client.launchpad.search(query) — find token by name/symbol/address
+- client.launchpad.getToken(tokenId?, address?) — full token profile + stats
+- client.launchpad.getHolders(address?, tokenId?) — top holders with PnL
+- client.launchpad.getActivity(tokenId?, address?) — recent trades
+- client.launchpad.quote(tokenId, side, amount) — bonding curve quote
+- client.launchpad.buildBuy(wallet, tokenId, avax, slippage?) — buy launchpad token
+- client.launchpad.buildSell(wallet, tokenId, amount, slippage?) — sell ("max" for all)
+- client.launchpad.getPortfolio(wallet) — your tracked positions
+
+**DEX Swaps (client.dex)**
+- client.dex.getTokens() — list 14+ known tokens
+- client.dex.getTokenInfo(address) — on-chain token info
+- client.dex.quote(from, to, amount) — quote any pair
+- client.dex.getBalance(wallet, token) — any token balance
+- client.dex.buildSwap(wallet, from, to, amount, slippage?) — swap any pair
+
+**Broadcasting**
+- client.broadcast(signedTx) — send signed tx, returns txHash
+
+## Rules
+- All build methods return unsigned transactions. Sign them with your private key, then broadcast.
+- If multiple transactions are returned, execute them IN ORDER. Wait for each to confirm.
+- Use slippage parameter (basis points, default 500 = 5%) for volatile markets.
+- Use amount="max" to sell entire balance of a token.
+- Graduated launchpad tokens auto-route through DEX — the SDK handles this transparently.
+- Always check balances before trading. Always verify quotes before building transactions.</div>
   </div>
 </section>
 
@@ -733,43 +972,6 @@ footer { border-top: 1px solid var(--border); padding: 1.2rem var(--gutter); }
       <div class="mc-body"><div class="mc-name">Graduated Trading</div><div class="mc-desc">Auto-routes graduated tokens through Pharaoh DEX. Transparent to agents.</div><div class="mc-tag">Live</div></div>
       <div class="mc-arr"><i class="hgi-stroke hgi-arrow-right-01"></i></div>
     </div>
-  </div>
-</section>
-
-<!-- SDK -->
-<section class="sdk" id="sdk">
-  <div class="sh">
-    <h2 class="sh-title">SDK</h2>
-    <div class="sh-badge">npm install logiqical</div>
-  </div>
-  <div class="sdk-grid">
-    <div>
-      <div class="sdk-install rv">
-        <span class="sdk-prompt">$ </span><span class="sdk-cmd">npm install logiqical</span>
-      </div>
-      <div class="sdk-features rv d1">
-        <div class="sdk-feat">Zero config — just pass wallet</div>
-        <div class="sdk-feat">Auto-registers API key</div>
-        <div class="sdk-feat">Full TypeScript types</div>
-        <div class="sdk-feat">JSDoc for AI agents</div>
-        <div class="sdk-feat">CJS + ESM builds</div>
-        <div class="sdk-feat">Zero dependencies</div>
-      </div>
-    </div>
-    <div class="sdk-code rv d2"><span class="kw">import</span> { <span class="vr">LogiqicalClient</span> } <span class="kw">from</span> <span class="str">"logiqical"</span>;
-
-<span class="kw">const</span> <span class="vr">client</span> = <span class="kw">new</span> <span class="fn">LogiqicalClient</span>({ <span class="str">wallet</span>: <span class="str">"0x..."</span> });
-
-<span class="cm">// discover tokens</span>
-<span class="kw">const</span> tokens = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">launchpad</span>.<span class="fn">getRecent</span>(10);
-
-<span class="cm">// swap any pair</span>
-<span class="kw">const</span> tx = <span class="kw">await</span> <span class="vr">client</span>.<span class="fn">dex</span>.<span class="fn">buildSwap</span>(
-  wallet, <span class="str">"AVAX"</span>, <span class="str">"USDC"</span>, <span class="str">"1.0"</span>
-);
-
-<span class="cm">// broadcast signed tx</span>
-<span class="kw">await</span> <span class="vr">client</span>.<span class="fn">broadcast</span>(signedTx);</div>
   </div>
 </section>
 
@@ -1125,6 +1327,20 @@ async function loadAgents() {
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+/* ── Copy prompt ── */
+function copyPrompt() {
+  const text = document.getElementById('agent-prompt').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-prompt');
+    btn.innerHTML = '<i class="hgi-stroke hgi-tick-01"></i> Copied';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="hgi-stroke hgi-copy-01"></i> Copy';
+      btn.classList.remove('copied');
+    }, 2500);
+  });
+}
 
 loadStats(); loadActivity(); loadAgents();
 setInterval(() => { loadStats(); loadActivity(); }, 30000);
