@@ -263,11 +263,64 @@ GET /launchpad/portfolio?wallet=<addr> — every token you bought through this A
 
 ---
 
+## 4. Launch — Create your own token on Arena
+
+You can launch tokens directly on Arena's bonding curve. The full flow: upload image → create Arena community → build createToken transaction.
+
+**Full launch (recommended — does everything in one call):**
+\`\`\`
+POST /launchpad/launch
+Body: {
+  "wallet": "<your-wallet>",
+  "name": "My Token",
+  "symbol": "MTK",
+  "imageBase64": "<base64-encoded-image>",   // optional
+  "paymentToken": "avax",                     // "avax" or "arena" (default: "arena")
+  "initialBuyAvax": "0"                       // optional: AVAX to buy at creation
+}
+
+Returns: {
+  "community": { id, name, ticker, photoURL, ... },
+  "imageUrl": "https://static.starsarena.com/...",
+  "transaction": { to, data, value, chainId, gas, gasLimit, description },
+  "nextTokenId": "112665",
+  "instructions": "Sign and broadcast the transaction..."
+}
+\`\`\`
+
+Then sign the transaction and broadcast it — your token is live on Arena!
+
+**Upload image only:**
+\`\`\`
+POST /launchpad/upload-image
+Body: { "imageBase64": "<base64>", "fileType": "image/jpeg" }
+Returns: { "imageUrl": "https://static.starsarena.com/..." }
+\`\`\`
+
+**Build createToken tx only (skip image + community):**
+\`\`\`
+GET /launchpad/build/create?wallet=<addr>&name=<name>&symbol=<symbol>&paymentToken=avax
+Returns: { transaction: { to, data, value, ... } }
+\`\`\`
+
+### Launch step by step:
+1. Prepare a token image (JPG/PNG, base64-encoded) — optional but recommended
+2. POST /launchpad/launch with name, symbol, wallet, and image
+3. Sign the returned transaction with your private key
+4. POST /broadcast { "signedTx": "0x..." }
+5. Your token is live! Share the Arena link.
+
+### Payment token choice:
+- **"avax"** — token is paired with AVAX. Most common (~112,000 tokens). Buyers pay AVAX directly.
+- **"arena"** — token is paired with ARENA. Less common (~3,700 tokens). Buyers still pay AVAX but it auto-converts.
+
+---
+
 ## Critical Rules
 
 1. **Gas limit** — ALWAYS use the gasLimit from the response (500000 for trades, 60000 for approve). Never use your wallet's default estimate — it WILL revert and waste gas.
 2. **Sell is 2 transactions** — approve first, wait for it to confirm, then sell. Always in order.
-3. **Graduated tokens are supported** — if lpDeployed=true, the API auto-routes through LFJ DEX. The response will include \`graduated: true\` so you know it's a DEX swap. Same endpoints, same flow.
+3. **Graduated tokens are supported** — if lpDeployed=true, the API auto-routes through Arena DEX. The response will include \`graduated: true\` so you know it's a DEX swap. Same endpoints, same flow.
 4. **Token amounts are tiny fractions** — seeing 0.000001 tokens for 0.1 AVAX is normal. The bonding curve is steep by design.
 5. **No fees on launchpad trades** — the protocol takes its own fee, we add nothing.
 6. **chainId: 43114** — everything is on Avalanche C-Chain.

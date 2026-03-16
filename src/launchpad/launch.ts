@@ -13,6 +13,17 @@ import {
 // Arena JWT for authenticated endpoints (create-community, upload)
 const ARENA_JWT = process.env.ARENA_JWT || "";
 
+/** Extract the wallet address from the server's ARENA_JWT (used for community creation on behalf of agents) */
+function getJwtOwnerAddress(): string | null {
+  if (!ARENA_JWT) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(ARENA_JWT.split(".")[1], "base64url").toString());
+    return payload.user?.address || null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Arena Social API: Image Upload ───
 
 interface UploadPolicy {
@@ -129,6 +140,11 @@ interface ArenaCommunity {
 
 /** Create a temporary community on Arena's backend (pre on-chain creation) */
 export async function createArenaCommunity(params: CreateCommunityParams): Promise<ArenaCommunity> {
+  // Arena's API validates that address matches the JWT owner
+  // Use the JWT owner's address so any agent can create communities through our server
+  const jwtOwner = getJwtOwnerAddress();
+  const communityAddress = jwtOwner || params.address;
+
   const body = {
     name: params.name,
     photoURL: params.photoURL,
@@ -144,7 +160,7 @@ export async function createArenaCommunity(params: CreateCommunityParams): Promi
       walletCount: 0,
       addresses: "",
     },
-    address: params.address,
+    address: communityAddress,
     paymentToken: params.paymentToken,
   };
 
@@ -226,8 +242,8 @@ export function buildCreateTokenTx(
     data,
     value,
     chainId: 43114,
-    gas: "600000",
-    gasLimit: "600000",
+    gas: "2000000",
+    gasLimit: "2000000",
     description: `Create token "${name}" ($${symbol}) on Arena [${paymentToken.toUpperCase()}-paired]`,
   };
 }

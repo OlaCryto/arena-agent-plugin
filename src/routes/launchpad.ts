@@ -4,6 +4,12 @@ import { trackPosition, removePosition, getPositions } from "../data/positions";
 import * as arenaApi from "../data/arena-api";
 import { requireApiKey } from "./middleware";
 import { logTrade } from "../data/tradelog";
+import {
+  uploadTokenImage,
+  createArenaCommunity,
+  buildCreateTokenTx,
+  getNextTokenId,
+} from "../launchpad/launch";
 
 function formatToken(t: arenaApi.ArenaToken) {
   return {
@@ -42,7 +48,7 @@ function formatToken(t: arenaApi.ArenaToken) {
   };
 }
 
-export function launchpadRoutes(launchpad: LaunchpadModule): Router {
+export function launchpadRoutes(launchpad: LaunchpadModule, provider?: import("ethers").JsonRpcProvider): Router {
   const router = Router();
 
   // Discovery
@@ -334,7 +340,7 @@ export function launchpadRoutes(launchpad: LaunchpadModule): Router {
       // Graduated tokens return a DexModule response
       if ("graduated" in result) {
         const { graduated, transactions, summary } = result as { graduated: true; transactions: any[]; summary: string };
-        res.json({ graduated, transactions, summary, note: "This token has graduated from the bonding curve and now trades on Pharaoh DEX." });
+        res.json({ graduated, transactions, summary, note: "This token has graduated from the bonding curve and now trades via Arena DEX." });
       } else {
         res.json(result);
       }
@@ -357,10 +363,118 @@ export function launchpadRoutes(launchpad: LaunchpadModule): Router {
       // Graduated tokens return a DexModule response
       if ("graduated" in result) {
         const { graduated, transactions, summary } = result as { graduated: true; transactions: any[]; summary: string };
-        res.json({ graduated, transactions, summary, note: "This token has graduated from the bonding curve and now trades on Pharaoh DEX." });
+        res.json({ graduated, transactions, summary, note: "This token has graduated from the bonding curve and now trades via Arena DEX." });
       } else {
         res.json({ transactions: result });
       }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Token Launch ───
+
+  /** Upload a token image (base64) and get the Arena-hosted URL */
+  router.post("/launchpad/upload-image", requireApiKey, async (req, res) => {
+    try {
+      const { imageBase64, fileType } = req.body;
+      if (!imageBase64) return res.status(400).json({ error: "imageBase64 required in JSON body" });
+      const imageUrl = await uploadTokenImage(imageBase64, fileType || "image/jpeg");
+      res.json({ imageUrl });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /** Full token launch: upload image → create Arena community → build createToken tx */
+  router.post("/launchpad/launch", requireApiKey, async (req, res) => {
+    try {
+      const { wallet, name, symbol, imageBase64, fileType, paymentToken, initialBuyAvax } = req.body;
+      if (!wallet || !name || !symbol) {
+        return res.status(400).json({ error: "wallet, name, and symbol required in JSON body" });
+      }
+
+      const pairType = paymentToken || "arena";
+      if (!["avax", "arena"].includes(pairType)) {
+        return res.status(400).json({ error: "paymentToken must be 'avax' or 'arena'" });
+      }
+
+      // Step 1: Upload image (optional — use default if not provided)
+      let imageUrl = "";
+      if (imageBase64) {
+        imageUrl = await uploadTokenImage(imageBase64, fileType || "image/jpeg");
+      }
+
+      // Step 2: Create community on Arena backend (best-effort — requires ARENA_JWT to match wallet)
+      let community: any = null;
+      try {
+        community = await createArenaCommunity({
+          name,
+          ticker: symbol,
+          tokenName: name,
+          photoURL: imageUrl,
+          address: wallet,
+          paymentToken: pairType,
+        });
+      } catch (err: any) {
+        // Community creation is optional — token can still be created on-chain
+        // Arena auto-links based on creator address when the on-chain tx confirms
+        community = { skipped: true, reason: err.message };
+      }
+
+      // Step 3: Build unsigned createToken transaction
+      const transaction = buildCreateTokenTx(wallet, name, symbol, pairType, initialBuyAvax || "0");
+
+      // Step 4: Get next token ID for reference
+      let nextTokenId = "unknown";
+      if (provider) {
+        try {
+          nextTokenId = await getNextTokenId(provider, pairType);
+        } catch {}
+      }
+
+      logTrade(req.get("X-API-Key") || "unknown", wallet, "launchpad-create", `Launch token "${name}" ($${symbol}) [${pairType}]`, "launchpad");
+
+      res.json({
+        community,
+        imageUrl,
+        transaction,
+        nextTokenId,
+        instructions: [
+          "1. Sign and broadcast the transaction to create your token on-chain.",
+          "2. Arena will automatically link the on-chain token to the community you just created.",
+          `3. Your token will appear on arena.social once the transaction confirms.`,
+          `4. Expected token ID: ${nextTokenId}`,
+        ],
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /** Build only the createToken transaction (no image upload or community creation) */
+  router.get("/launchpad/build/create", requireApiKey, async (req, res) => {
+    try {
+      const wallet = req.query.wallet as string;
+      const name = req.query.name as string;
+      const symbol = req.query.symbol as string;
+      const paymentToken = (req.query.paymentToken as string) || "arena";
+      const initialBuyAvax = (req.query.initialBuyAvax as string) || "0";
+
+      if (!wallet || !name || !symbol) {
+        return res.status(400).json({ error: "?wallet=, ?name=, and ?symbol= required" });
+      }
+
+      const transaction = buildCreateTokenTx(wallet, name, symbol, paymentToken as "avax" | "arena", initialBuyAvax);
+
+      let nextTokenId = "unknown";
+      if (provider) {
+        try {
+          nextTokenId = await getNextTokenId(provider, paymentToken as "avax" | "arena");
+        } catch {}
+      }
+
+      res.json({ transaction, nextTokenId });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
