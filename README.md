@@ -7,7 +7,14 @@ Logiqical gives AI agents a **non-custodial** wallet on Avalanche with built-in 
 ## Install
 
 ```bash
+# As a dependency
 npm install logiqical
+
+# Or globally (unlocks CLI + vault)
+npm install -g logiqical
+
+# Or one-click (installs Node.js if needed, runs setup)
+curl -fsSL https://raw.githubusercontent.com/OlaCryto/arena-agent-plugin/master/install.sh | bash
 ```
 
 ## Quick Start
@@ -618,6 +625,78 @@ Create an agent with existing keys.
 | `agent.getPolicy()` | Get current spending policy |
 | `agent.setPolicy(policy)` | Replace spending policy |
 | `agent.getBudgetStatus()` | Spent today, remaining budget |
+
+## CLI
+
+Interactive agent management from the command line.
+
+```bash
+# First-time setup: create wallet, set Arena key, configure policy
+logiqical setup
+
+# Check status
+logiqical status
+
+# Show wallet address and balance
+logiqical wallet
+
+# View or edit spending policy
+logiqical policy
+logiqical policy max-per-tx 2.0
+logiqical policy max-per-day 50.0
+
+# Set Arena API key
+logiqical config arena-key arena_abc123
+```
+
+## Vault Daemon
+
+A separate signer process that holds the private key and enforces spending policies. The SDK and MCP server talk to the vault — keys never leave the vault process.
+
+```bash
+# Start the vault (localhost:7842)
+logiqical-vault
+
+# Custom port
+logiqical-vault --port 8000
+```
+
+**Security model:**
+- Private key loaded once from encrypted keystore, never exposed
+- Every transaction is policy-checked before signing
+- Simulation via `eth_call` before broadcasting (if enabled)
+- Only localhost connections accepted
+- Budget tracking persists across restarts
+
+**Endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+| GET | `/address` | Wallet address |
+| GET | `/policy` | Current spending policy |
+| POST | `/policy` | Update policy |
+| GET | `/budget` | Budget status (spent/remaining) |
+| POST | `/sign` | Sign a transaction (policy-enforced) |
+| POST | `/sign-message` | Sign an arbitrary message |
+| POST | `/sign-typed-data` | Sign EIP-712 typed data |
+| POST | `/broadcast` | Broadcast a signed transaction |
+
+## Skill Packs
+
+Pre-written instruction files that teach AI agents how to use Logiqical. Drop into your agent host and it knows all 91 tools instantly.
+
+**Claude Code / Claude Desktop:**
+```bash
+cp node_modules/logiqical/skills/logiqical/CLAUDE.md ~/.claude/CLAUDE.md
+```
+
+**Codex:**
+```bash
+cp node_modules/logiqical/skills/logiqical/CODEX.md ~/.codex/skills/logiqical.md
+```
+
+The skill packs cover every tool, the right usage patterns (check balance before trading, confirm with user before executing), safety rules, and Arena rate limits.
 
 ## Key Contracts
 

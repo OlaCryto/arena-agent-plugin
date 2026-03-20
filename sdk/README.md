@@ -22,7 +22,14 @@ await agent.execute(agent.dex.buildSwap(agent.address, "AVAX", "USDC", "1.0"));
 ## Install
 
 ```bash
+# As a dependency
 npm install logiqical
+
+# Or globally (unlocks CLI + vault)
+npm install -g logiqical
+
+# Or one-click
+curl -fsSL https://raw.githubusercontent.com/OlaCryto/arena-agent-plugin/master/install.sh | bash
 ```
 
 ## Quick Start
@@ -536,6 +543,40 @@ const baseAgent = agent.switchNetwork("arbitrum");
 ```
 
 **Supported chains:** Avalanche, Fuji, Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, Fantom, Gnosis, zkSync Era, Linea, Scroll, Blast, Mantle, Celo, Moonbeam, Sei, Mode, Aurora
+
+## CLI
+
+```bash
+logiqical setup              # Interactive 4-step onboarding
+logiqical wallet             # Show address + balance
+logiqical status             # Full agent status
+logiqical policy             # View spending policy
+logiqical policy max-per-tx 2.0   # Edit policy
+logiqical config arena-key arena_abc123  # Set Arena API key
+```
+
+## Vault Daemon
+
+Separate signer process — keys never leave the vault. Policy enforcement at the signing boundary.
+
+```bash
+logiqical-vault              # Start on localhost:7842
+logiqical-vault --port 8000  # Custom port
+```
+
+Endpoints: `/sign`, `/sign-message`, `/sign-typed-data`, `/broadcast`, `/policy`, `/budget`, `/address`, `/health`
+
+## Skill Packs
+
+Drop-in instruction files that teach AI agents all 91 tools:
+
+```bash
+# Claude Code
+cp node_modules/logiqical/skills/logiqical/CLAUDE.md ~/.claude/CLAUDE.md
+
+# Codex
+cp node_modules/logiqical/skills/logiqical/CODEX.md ~/.codex/skills/logiqical.md
+```
 
 ## Architecture
 
