@@ -20,4 +20,24 @@ export default defineConfig([
     target: "node18",
     external: ["ethers", "@modelcontextprotocol/sdk", "zod"],
   },
+  // Admin CLI binary
+  {
+    entry: ["src/cli/admin.ts"],
+    format: ["esm"],
+    dts: false,
+    sourcemap: false,
+    banner: { js: "#!/usr/bin/env node" },
+    target: "node18",
+    external: ["ethers"],
+  },
+  // Vault daemon binary
+  {
+    entry: ["src/cli/vault.ts"],
+    format: ["esm"],
+    dts: false,
+    sourcemap: false,
+    banner: { js: "#!/usr/bin/env node" },
+    target: "node18",
+    external: ["ethers"],
+  },
 ]);
