@@ -1,10 +1,13 @@
 {
   "name": "logiqical",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for AI agents to trade on Avalanche — swaps, staking, launchpad, DEX",
+  "version": "0.3.0",
+  "description": "Agent wallet SDK for Avalanche — swap, stake, launchpad, DEX, perps, bridge, social, signals. No backend needed.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "bin": {
+    "logiqical-mcp": "./dist/cli.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -12,24 +15,41 @@
       "import": "./dist/index.mjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["avalanche", "arena", "defi", "sdk", "ai-agent", "trading", "logiqical"],
+  "keywords": [
+    "avalanche",
+    "arena",
+    "defi",
+    "sdk",
+    "ai-agent",
+    "trading",
+    "logiqical",
+    "wallet",
+    "agent-wallet",
+    "signals",
+    "perps",
+    "bridge",
+    "mcp"
+  ],
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/OlaCryto/arena-agent-plugin.git",
-    "directory": "sdk"
-  },
+  "repository": {},
   "engines": {
     "node": ">=18.0.0"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "ethers": "^6.16.0",
+    "zod": "^3.24.4"
   }
 }

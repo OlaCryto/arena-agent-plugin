@@ -1,19 +1,30 @@
-/** Error returned by the Logiqical API */
+export type LogiqicalErrorCode =
+  | "INSUFFICIENT_BALANCE"
+  | "SLIPPAGE_EXCEEDED"
+  | "TOKEN_NOT_FOUND"
+  | "CONTRACT_REVERT"
+  | "NO_LIQUIDITY"
+  | "TX_FAILED"
+  | "INVALID_ADDRESS"
+  | "INVALID_AMOUNT"
+  | "NO_WALLET"
+  | "NETWORK_ERROR"
+  | "API_ERROR"
+  | "UNKNOWN";
+
 export class LogiqicalError extends Error {
   constructor(
     message: string,
-    public readonly statusCode: number,
-    public readonly endpoint: string,
+    public readonly code: LogiqicalErrorCode,
+    public readonly cause?: Error,
   ) {
     super(message);
     this.name = "LogiqicalError";
   }
-}
 
-/** Authentication error — invalid or missing API key */
-export class LogiqicalAuthError extends LogiqicalError {
-  constructor(endpoint: string) {
-    super("Invalid or missing API key. Call client.register() or provide an apiKey in config.", 401, endpoint);
-    this.name = "LogiqicalAuthError";
+  static from(e: unknown, code: LogiqicalErrorCode = "UNKNOWN"): LogiqicalError {
+    if (e instanceof LogiqicalError) return e;
+    const cause = e instanceof Error ? e : new Error(String(e));
+    return new LogiqicalError(cause.message, code, cause);
   }
 }

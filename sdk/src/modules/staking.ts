@@ -1,57 +1,151 @@
-import type { HttpClient } from "../http.js";
-import type { StakeInfoResponse, StakeBuildResponse, UnsignedTx } from "../types.js";
+import { ethers, type JsonRpcProvider } from "ethers";
+import {
+  ARENA_TOKEN, ARENA_STAKING, WAVAX, LB_QUOTER,
+  ERC20_ABI, ARENA_STAKING_ABI, LB_QUOTER_ABI, LB_ROUTER_ABI, LB_ROUTER,
+  DEFAULT_SLIPPAGE_BPS, CHAIN_ID,
+} from "../constants.js";
+import type { UnsignedTx } from "../types.js";
 
 export class StakingModule {
-  constructor(
-    private http: HttpClient,
-    private auth: () => Promise<void>,
-  ) {}
+  private arenaToken: ethers.Contract;
+  private staking: ethers.Contract;
 
-  /**
-   * Get staking info for a wallet — staked amount, pending rewards, APY.
-   * @param wallet - Wallet address to check
-   */
-  async getInfo(wallet: string): Promise<StakeInfoResponse> {
-    await this.auth();
-    return this.http.get("/stake/info", { wallet });
+  constructor(private provider: JsonRpcProvider) {
+    this.arenaToken = new ethers.Contract(ethers.getAddress(ARENA_TOKEN), ERC20_ABI, provider);
+    this.staking = new ethers.Contract(ethers.getAddress(ARENA_STAKING), ARENA_STAKING_ABI, provider);
   }
 
-  /**
-   * Build unsigned transactions to stake ARENA tokens.
-   *
-   * Returns 2 transactions — execute in order:
-   * 1. Approve — allows the staking contract to spend your ARENA
-   * 2. Stake — deposits ARENA into staking
-   *
-   * @param wallet - Your wallet address
-   * @param amount - Amount of ARENA to stake
-   */
-  async buildStake(wallet: string, amount: string): Promise<StakeBuildResponse> {
-    await this.auth();
-    return this.http.get("/build/stake", { wallet, amount });
+  /** Get staking info — staked amount, pending rewards */
+  async getInfo(wallet: string): Promise<{ staked: string; stakedFormatted: string; rewards: string; rewardsFormatted: string }> {
+    const decimals = await this.arenaToken.decimals();
+    const [stakedRaw] = await this.staking.getUserInfo(wallet, ethers.getAddress(ARENA_TOKEN));
+    const pendingRaw = await this.staking.pendingReward(wallet, ethers.getAddress(ARENA_TOKEN));
+    return {
+      staked: stakedRaw.toString(),
+      stakedFormatted: ethers.formatUnits(stakedRaw, decimals),
+      rewards: pendingRaw.toString(),
+      rewardsFormatted: ethers.formatUnits(pendingRaw, decimals),
+    };
   }
 
-  /**
-   * Build unsigned transactions to buy ARENA with AVAX and stake in one flow.
-   *
-   * Combines swap + approve + stake. Returns multiple transactions — execute in order.
-   *
-   * @param wallet - Your wallet address
-   * @param avax - Amount of AVAX to spend
-   * @param slippage - Slippage tolerance in basis points (default: 500 = 5%)
-   */
-  async buildBuyAndStake(wallet: string, avax: string, slippage?: number): Promise<StakeBuildResponse> {
-    await this.auth();
-    return this.http.get("/build/buy-and-stake", { wallet, avax, slippage });
+  /** Build txs to stake ARENA: [approve, deposit] */
+  async buildStake(wallet: string, amount: string): Promise<{ transactions: UnsignedTx[] }> {
+    const decimals = await this.arenaToken.decimals();
+    let stakeAmount: bigint;
+    if (amount === "max") {
+      stakeAmount = await this.arenaToken.balanceOf(wallet);
+    } else {
+      stakeAmount = ethers.parseUnits(amount, decimals);
+    }
+
+    const approveIface = new ethers.Interface(ERC20_ABI);
+    const approveData = approveIface.encodeFunctionData("approve", [ethers.getAddress(ARENA_STAKING), stakeAmount]);
+
+    const stakingIface = new ethers.Interface(ARENA_STAKING_ABI);
+    const stakeData = stakingIface.encodeFunctionData("deposit", [stakeAmount]);
+
+    return {
+      transactions: [
+        {
+          to: ethers.getAddress(ARENA_TOKEN),
+          data: approveData,
+          value: "0",
+          chainId: CHAIN_ID,
+          gasLimit: "60000",
+          description: `Approve ${ethers.formatUnits(stakeAmount, decimals)} ARENA for staking`,
+        },
+        {
+          to: ethers.getAddress(ARENA_STAKING),
+          data: stakeData,
+          value: "0",
+          chainId: CHAIN_ID,
+          gasLimit: "300000",
+          description: `Stake ${ethers.formatUnits(stakeAmount, decimals)} ARENA`,
+        },
+      ],
+    };
   }
 
-  /**
-   * Build unsigned transaction to unstake ARENA tokens and claim rewards.
-   * @param wallet - Your wallet address
-   * @param amount - Amount of ARENA to unstake
-   */
-  async buildUnstake(wallet: string, amount: string): Promise<UnsignedTx> {
-    await this.auth();
-    return this.http.get("/build/unstake", { wallet, amount });
+  /** Build tx to unstake ARENA + claim rewards */
+  async buildUnstake(wallet: string, amount: string): Promise<{ transactions: UnsignedTx[] }> {
+    const decimals = await this.arenaToken.decimals();
+    let withdrawAmount: bigint;
+    if (amount === "max") {
+      const [stakedRaw] = await this.staking.getUserInfo(wallet, ethers.getAddress(ARENA_TOKEN));
+      withdrawAmount = stakedRaw;
+    } else {
+      withdrawAmount = ethers.parseUnits(amount, decimals);
+    }
+
+    const iface = new ethers.Interface(ARENA_STAKING_ABI);
+    const data = iface.encodeFunctionData("withdraw", [withdrawAmount]);
+
+    return {
+      transactions: [{
+        to: ethers.getAddress(ARENA_STAKING),
+        data,
+        value: "0",
+        chainId: CHAIN_ID,
+        gasLimit: "300000",
+        description: `Unstake ${ethers.formatUnits(withdrawAmount, decimals)} ARENA + claim rewards`,
+      }],
+    };
+  }
+
+  /** Build buy-and-stake flow (3 txs): buy ARENA via LFJ, approve, stake */
+  async buildBuyAndStake(wallet: string, avaxAmount: string, slippageBps = DEFAULT_SLIPPAGE_BPS): Promise<{ transactions: UnsignedTx[] }> {
+    const lbQuoter = new ethers.Contract(ethers.getAddress(LB_QUOTER), LB_QUOTER_ABI, this.provider);
+    const amountIn = ethers.parseEther(avaxAmount);
+    const route = [WAVAX, ARENA_TOKEN];
+    const quote = await lbQuoter.findBestPathFromAmountIn(route, amountIn);
+    const expectedOut: bigint = quote.amounts[quote.amounts.length - 1];
+    const clampedSlippage = BigInt(Math.max(0, Math.min(10000, Number(slippageBps))));
+    const amountOutMin = expectedOut - (expectedOut * clampedSlippage) / 10000n;
+    const deadline = Math.floor(Date.now() / 1000) + 3600;
+    const decimals = await this.arenaToken.decimals();
+
+    const path = {
+      pairBinSteps: [...quote.binSteps].map((b: any) => b.toString()),
+      versions: [...quote.versions].map((v: any) => Number(v)),
+      tokenPath: [...route],
+    };
+
+    const routerIface = new ethers.Interface(LB_ROUTER_ABI);
+    const buyData = routerIface.encodeFunctionData("swapExactNATIVEForTokens", [amountOutMin, path, wallet, deadline]);
+
+    const erc20Iface = new ethers.Interface(ERC20_ABI);
+    const approveData = erc20Iface.encodeFunctionData("approve", [ethers.getAddress(ARENA_STAKING), ethers.MaxUint256]);
+
+    const stakingIface = new ethers.Interface(ARENA_STAKING_ABI);
+    const stakeData = stakingIface.encodeFunctionData("deposit", [expectedOut]);
+
+    return {
+      transactions: [
+        {
+          to: ethers.getAddress(LB_ROUTER),
+          data: buyData,
+          value: ethers.toBeHex(amountIn, 32),
+          chainId: CHAIN_ID,
+          gasLimit: "500000",
+          description: `Step 1/3: Buy ~${ethers.formatUnits(expectedOut, decimals)} ARENA with ${avaxAmount} AVAX`,
+        },
+        {
+          to: ethers.getAddress(ARENA_TOKEN),
+          data: approveData,
+          value: "0",
+          chainId: CHAIN_ID,
+          gasLimit: "60000",
+          description: `Step 2/3: Approve ARENA for staking`,
+        },
+        {
+          to: ethers.getAddress(ARENA_STAKING),
+          data: stakeData,
+          value: "0",
+          chainId: CHAIN_ID,
+          gasLimit: "300000",
+          description: `Step 3/3: Stake ~${ethers.formatUnits(expectedOut, decimals)} ARENA`,
+        },
+      ],
+    };
   }
 }
