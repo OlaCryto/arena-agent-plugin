@@ -1,12 +1,12 @@
 {
   "name": "logiqical",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Agent wallet SDK for Avalanche — swap, stake, launchpad, DEX, perps, bridge, social, signals. No backend needed.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "bin": {
-    "logiqical-mcp": "./dist/cli.mjs"
+    "logiqical-mcp": "dist/cli.mjs"
   },
   "exports": {
     ".": {
