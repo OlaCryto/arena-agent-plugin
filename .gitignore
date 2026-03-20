@@ -4,3 +4,9 @@ api-keys.json
 artifacts/
 cache/
 typechain-types/
+dist/
+sdk/dist/
+positions.json
+tradelog.json
+*.har
+tmp_*.json
