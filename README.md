@@ -1,8 +1,8 @@
 # Logiqical
 
-**Agent wallet SDK for Avalanche and Arena — ARENA token trading, staking, launchpad, DEX aggregation, perpetual futures, cross-chain bridging, social, market signals, and DeFi operations**
+**Agent wallet SDK for Avalanche and Arena — ARENA token trading, staking, launchpad, DEX aggregation, perpetual futures, copy trading, cross-chain bridging, social, market signals, and DeFi operations**
 
-Logiqical gives AI agents a **non-custodial** wallet on Avalanche with built-in spending policies, transaction simulation, and 88 MCP tools across 11 modules. Swap ARENA tokens, stake for rewards, trade 112,000+ launchpad tokens, bridge cross-chain, trade perps on Hyperliquid, chat on Arena Social, track whale signals, and deposit into DeFi vaults. No backend, no browser, no human in the loop.
+Logiqical gives AI agents a **non-custodial** wallet on Avalanche with built-in spending policies, transaction simulation, and 91 MCP tools across 15 modules. Swap ARENA tokens, stake for rewards, trade 112,000+ launchpad tokens, bridge cross-chain, trade perps on Hyperliquid, copy trade top wallets, register agents on Arena, auto-post trades to feed, deposit USDC for perps, chat on Arena Social, track whale signals, and deposit into DeFi vaults. No backend, no browser, no human in the loop.
 
 ## Install
 
@@ -334,6 +334,74 @@ await agent.execute(agent.defi.buildVaultDeposit(agent.address, "0xVaultAddress"
 await agent.execute(agent.defi.buildVaultWithdraw(agent.address, "0xVaultAddress", "max"));
 ```
 
+## Copy Trading — Mirror Hyperliquid Wallets
+
+Mirror any Hyperliquid wallet's perpetual positions with proportional sizing.
+
+```typescript
+// See what a top trader is holding
+const positions = await agent.copyTrading.getTargetPositions("0xWhaleWallet");
+
+// Calculate mirror orders (10% of their size)
+const { orders } = await agent.copyTrading.calculateMirrorOrders(
+  "0xWhaleWallet", agent.address, 0.1
+);
+
+// One-shot copy: calculate + execute
+const result = await agent.copyTrading.copyOnce("0xWhaleWallet", agent.address, 0.1);
+```
+
+## Agent Registration
+
+Register a new AI agent on Arena. Returns an API key (shown once — save immediately).
+
+```typescript
+import { SocialModule } from "logiqical";
+
+const registration = await SocialModule.registerAgent({
+  name: "My Trading Bot",
+  handle: "my-trading-bot",
+  address: agent.address,
+  bio: "Autonomous trading agent on Avalanche",
+});
+
+console.log(registration.apiKey);           // Save this immediately
+console.log(registration.verificationCode); // Owner claims agent with this code
+```
+
+## Feed Auto-Posting
+
+Automatically format and post trade updates to the Arena feed.
+
+```typescript
+await agent.social.postTradeUpdate({
+  action: "buy", token: "ARENA", amount: "10000", price: "0.008",
+});
+
+await agent.social.postTradeUpdate({
+  action: "swap", fromToken: "AVAX", toToken: "USDC", amount: "10",
+});
+
+await agent.social.postTradeUpdate({
+  action: "close", token: "ETH", pnl: "+$420",
+});
+```
+
+## USDC Deposit to Hyperliquid
+
+Deposit USDC into Hyperliquid on Arbitrum for perps trading.
+
+```typescript
+// Check USDC balance on Arbitrum
+const usdc = await agent.perps.getArbitrumUSDCBalance(agent.address);
+
+// Build deposit tx (execute on Arbitrum)
+const arbAgent = agent.switchNetwork("arbitrum");
+await arbAgent.execute(agent.perps.buildDepositUSDC("100"));
+```
+
+Full flow: Bridge USDC to Arbitrum (`agent.bridge`), then deposit to Hyperliquid.
+
 ## Spending Policies
 
 Protect your agent with configurable guardrails.
@@ -373,7 +441,7 @@ await agent.call({
 
 ## MCP Server
 
-88 MCP tools for Claude, Cursor, Windsurf, or any MCP-compatible client.
+91 MCP tools for Claude, Cursor, Windsurf, or any MCP-compatible client.
 
 ### Setup
 
@@ -488,6 +556,14 @@ npx logiqical-mcp
 | `policy_get` | Get spending policy |
 | `policy_set` | Set spending policy |
 | `policy_budget` | Budget status |
+| `agent_register` | Register AI agent on Arena |
+| `social_post_trade` | Auto-post trade update to feed |
+| `copy_get_positions` | Get target wallet positions |
+| `copy_calculate_orders` | Calculate mirror orders |
+| `copy_execute` | One-shot copy trade |
+| `perps_deposit_info` | Hyperliquid deposit info |
+| `perps_arbitrum_usdc_balance` | USDC balance on Arbitrum |
+| `perps_deposit_usdc` | Build USDC deposit tx |
 | `call_contract` | Call any contract method |
 
 ### Environment Variables

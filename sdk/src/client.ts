@@ -12,6 +12,7 @@ import { SocialModule } from "./modules/social.js";
 import { SignalsModule } from "./modules/signals.js";
 import { MarketModule } from "./modules/market.js";
 import { DefiModule } from "./modules/defi.js";
+import { CopyTradingModule } from "./modules/copytrading.js";
 import type { UnsignedTx, CallIntent, TransactionResult } from "./types.js";
 import type { TransactionResponse } from "ethers";
 
@@ -73,6 +74,8 @@ export class Logiqical {
   readonly market: MarketModule;
   /** DeFi — sAVAX liquid staking + ERC-4626 vaults */
   readonly defi: DefiModule;
+  /** Copy trading — mirror Hyperliquid wallet positions */
+  readonly copyTrading: CopyTradingModule;
 
   /** The agent's wallet address */
   readonly address: string;
@@ -127,6 +130,7 @@ export class Logiqical {
     this.signals = new SignalsModule();
     this.market = new MarketModule();
     this.defi = new DefiModule(this.provider);
+    this.copyTrading = new CopyTradingModule(this.perps);
   }
 
   // ── Factory Methods ──

@@ -1,4 +1,5 @@
-import { ARENA_SOCIAL_API, HL_INFO } from "../constants.js";
+import { ARENA_SOCIAL_API, HL_INFO, HL_DEPOSIT_ADDRESS, USDC_ARBITRUM, ARBITRUM_CHAIN_ID, ARBITRUM_RPC, ERC20_ABI } from "../constants.js";
+import { ethers, JsonRpcProvider, Contract } from "ethers";
 
 export class PerpsModule {
   constructor(private arenaApiKey?: string) {}
@@ -86,5 +87,55 @@ export class PerpsModule {
 
   async getOpenOrders(wallet: string): Promise<any> {
     return this.hlPost({ type: "openOrders", user: wallet });
+  }
+
+  // ── USDC Deposit to Hyperliquid (on Arbitrum) ──
+
+  /** Check USDC balance on Arbitrum */
+  async getArbitrumUSDCBalance(wallet: string): Promise<string> {
+    const provider = new JsonRpcProvider(ARBITRUM_RPC, ARBITRUM_CHAIN_ID);
+    const usdc = new Contract(USDC_ARBITRUM, ERC20_ABI, provider);
+    const balance: bigint = await usdc.balanceOf(wallet);
+    return ethers.formatUnits(balance, 6);
+  }
+
+  /** Check ETH balance on Arbitrum (needed for gas) */
+  async getArbitrumETHBalance(wallet: string): Promise<string> {
+    const provider = new JsonRpcProvider(ARBITRUM_RPC, ARBITRUM_CHAIN_ID);
+    const balance = await provider.getBalance(wallet);
+    return ethers.formatEther(balance);
+  }
+
+  /**
+   * Build a USDC deposit transaction for Hyperliquid on Arbitrum.
+   * Returns an unsigned tx — use with agent.execute() after switching to Arbitrum network.
+   *
+   * Flow: agent.switchNetwork("arbitrum") → agent.execute(agent.perps.buildDepositUSDC(...))
+   */
+  buildDepositUSDC(amount: string): { transaction: { to: string; data: string; value: string; chainId: number; description: string } } {
+    const iface = new ethers.Interface(["function transfer(address to, uint256 amount) returns (bool)"]);
+    const amountWei = ethers.parseUnits(amount, 6);
+    const data = iface.encodeFunctionData("transfer", [HL_DEPOSIT_ADDRESS, amountWei]);
+    return {
+      transaction: {
+        to: USDC_ARBITRUM,
+        data,
+        value: "0",
+        chainId: ARBITRUM_CHAIN_ID,
+        description: `Deposit ${amount} USDC to Hyperliquid`,
+      },
+    };
+  }
+
+  /** Get deposit info (addresses + chain details) */
+  getDepositInfo() {
+    return {
+      chain: "Arbitrum One",
+      chainId: ARBITRUM_CHAIN_ID,
+      usdcAddress: USDC_ARBITRUM,
+      depositAddress: HL_DEPOSIT_ADDRESS,
+      decimals: 6,
+      tip: "Bridge USDC to Arbitrum first (use bridge module), then deposit to Hyperliquid",
+    };
   }
 }

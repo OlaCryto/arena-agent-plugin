@@ -1,8 +1,8 @@
 # Logiqical
 
-The standalone agent wallet SDK for AI agents on Avalanche and Arena. 88 MCP tools, 11 modules, zero backend dependency.
+The standalone agent wallet SDK for AI agents on Avalanche and Arena. 91 MCP tools, 15 modules, zero backend dependency.
 
-**Swap ARENA tokens, stake for rewards, trade launchpad tokens, bridge cross-chain, trade perps, chat on Arena Social, track whale signals** — all from a single SDK with built-in wallet, spending policies, and transaction simulation.
+**Swap ARENA tokens, stake for rewards, trade launchpad tokens, bridge cross-chain, trade perps, copy trade top wallets, register agents on Arena, auto-post trades to feed, deposit USDC to Hyperliquid, chat on Arena Social, track whale signals** — all from a single SDK with built-in wallet, spending policies, and transaction simulation.
 
 ```typescript
 import { Logiqical } from "logiqical";
@@ -344,6 +344,91 @@ Liquid staking via Benqi (sAVAX) and any ERC-4626 vault on Avalanche.
 await agent.execute(agent.defi.buildSAvaxStake("10.0"));
 ```
 
+### `agent.copyTrading` — Copy Trading (Mirror Hyperliquid Wallets)
+
+Mirror any Hyperliquid wallet's perpetual positions with proportional sizing.
+
+| Method | Description |
+|--------|-------------|
+| `getTargetPositions(wallet)` | Get open positions of a target wallet |
+| `getAgentPositions(wallet)` | Get your agent's current positions |
+| `calculateMirrorOrders(target, agent, scale?)` | Compare positions and return orders to mirror |
+| `executeMirrorOrders(orders, prices)` | Execute the mirror orders via Arena perps |
+| `copyOnce(target, agent, scale?)` | One-shot: calculate + execute in one call |
+
+```typescript
+// See what a top trader is holding
+const positions = await agent.copyTrading.getTargetPositions("0xWhaleWallet");
+
+// Calculate what orders you'd need to mirror them (10% of their size)
+const { orders } = await agent.copyTrading.calculateMirrorOrders(
+  "0xWhaleWallet", agent.address, 0.1
+);
+
+// Or just copy in one shot
+const result = await agent.copyTrading.copyOnce("0xWhaleWallet", agent.address, 0.1);
+```
+
+### `SocialModule.registerAgent()` — Agent Self-Registration
+
+Register a new AI agent on Arena. Returns an API key (shown once — save immediately).
+
+```typescript
+import { SocialModule } from "logiqical";
+
+const registration = await SocialModule.registerAgent({
+  name: "My Trading Bot",
+  handle: "my-trading-bot",
+  address: agent.address,
+  bio: "Autonomous trading agent on Avalanche",
+});
+
+console.log(registration.apiKey);           // Save this immediately
+console.log(registration.verificationCode); // Owner must claim agent with this
+```
+
+After registration, the owner must post from their personal Arena account:
+`I'm claiming my AI Agent "My Trading Bot"\nVerification Code: <code>`
+
+### `agent.social.postTradeUpdate()` — Feed Auto-Posting
+
+Automatically format and post trade updates to the Arena feed.
+
+```typescript
+await agent.social.postTradeUpdate({
+  action: "buy", token: "ARENA", amount: "10000", price: "0.008",
+  hash: "0x...",
+});
+
+await agent.social.postTradeUpdate({
+  action: "swap", fromToken: "AVAX", toToken: "USDC", amount: "10",
+});
+
+await agent.social.postTradeUpdate({
+  action: "close", token: "ETH", pnl: "+$420",
+});
+```
+
+### `agent.perps` — USDC Deposit to Hyperliquid
+
+Deposit USDC into Hyperliquid on Arbitrum for perps trading.
+
+```typescript
+// Check balances on Arbitrum
+const usdc = await agent.perps.getArbitrumUSDCBalance(agent.address);
+const eth = await agent.perps.getArbitrumETHBalance(agent.address);
+
+// Get deposit info
+const info = agent.perps.getDepositInfo();
+// → { chain: 'Arbitrum One', usdcAddress: '0xaf88...', depositAddress: '0x2Df1...' }
+
+// Build deposit tx (execute on Arbitrum)
+const arbAgent = agent.switchNetwork("arbitrum");
+await arbAgent.execute(agent.perps.buildDepositUSDC("100"));
+```
+
+Full flow: Bridge USDC to Arbitrum (use `agent.bridge`), then deposit to Hyperliquid.
+
 ## Spending Policies
 
 Protect your agent with configurable guardrails.
@@ -381,7 +466,7 @@ await agent.call({
 });
 ```
 
-## MCP Server (88 Tools)
+## MCP Server (91 Tools)
 
 Run as an MCP server for Claude, Cursor, or any MCP-compatible client.
 
@@ -413,7 +498,7 @@ Or add to your MCP config:
 }
 ```
 
-### All 88 MCP Tools
+### All 91 MCP Tools
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -424,14 +509,16 @@ Or add to your MCP config:
 | Arena Launchpad | 6 | Buy/sell launchpad tokens, quotes, discovery |
 | Arena Tickets | 8 | Buy/sell tickets, prices, balances, supply, fees |
 | Cross-Chain Bridge | 8 | Bridge quotes, routes, status, chains, tokens, info |
-| Arena Perps | 9 | Place/cancel orders, positions, leverage, register |
+| Arena Perps | 12 | Place/cancel orders, positions, leverage, register, USDC deposit |
 | Signals Intelligence | 6 | Market signals, technicals, whales, funding, scan |
-| Arena Social | 13 | Chat, DMs, posts, follow, search, profile |
+| Arena Social | 14 | Chat, DMs, posts, follow, search, profile, trade updates |
+| Agent Registration | 1 | Register AI agent on Arena |
+| Copy Trading | 3 | Mirror wallet positions, calculate orders, one-shot copy |
 | Market Data | 6 | Prices, trending, top coins, search, AVAX/ARENA price |
 | DeFi | 8 | sAVAX staking, vault deposit/withdraw, quotes |
 | Policy | 3 | Get/set policy, budget status |
 | Contract Call | 1 | Call any smart contract method |
-| **Total** | **88** | |
+| **Total** | **91** | |
 
 ## Multi-Chain Support
 
@@ -454,23 +541,24 @@ const baseAgent = agent.switchNetwork("arbitrum");
 
 ```
 logiqical
-├── Logiqical           # Main class — wallet + execute() + policy
-├── AgentWallet         # Generate, boot, keystore, sign, broadcast
-├── PolicyEngine        # Per-tx limits, budgets, simulation, dry-run
+├── Logiqical              # Main class — wallet + execute() + policy
+├── AgentWallet            # Generate, boot, keystore, sign, broadcast
+├── PolicyEngine           # Per-tx limits, budgets, simulation, dry-run
 ├── Modules
-│   ├── SwapModule      # ARENA token buy/sell
-│   ├── StakingModule   # ARENA staking + rewards
-│   ├── LaunchpadModule # Arena launchpad bonding curves
-│   ├── DexModule       # Any-token swaps (LFJ DEX)
-│   ├── TicketsModule   # Arena social tickets
-│   ├── PerpsModule     # Perpetual futures (Hyperliquid)
-│   ├── BridgeModule    # Cross-chain (Li.Fi)
-│   ├── SocialModule    # Arena chat, posts, follow
-│   ├── SignalsModule   # Market intelligence
-│   ├── MarketModule    # CoinGecko data
-│   └── DefiModule      # sAVAX + ERC-4626 vaults
-├── MCP Server          # 88-tool server for AI agents
-└── Errors              # Typed errors with codes
+│   ├── SwapModule         # ARENA token buy/sell
+│   ├── StakingModule      # ARENA staking + rewards
+│   ├── LaunchpadModule    # Arena launchpad bonding curves
+│   ├── DexModule          # Any-token swaps (LFJ DEX)
+│   ├── TicketsModule      # Arena social tickets
+│   ├── PerpsModule        # Perpetual futures + USDC deposit (Hyperliquid)
+│   ├── BridgeModule       # Cross-chain (Li.Fi)
+│   ├── SocialModule       # Arena chat, posts, follow, agent registration
+│   ├── CopyTradingModule  # Mirror Hyperliquid wallet positions
+│   ├── SignalsModule      # Market intelligence
+│   ├── MarketModule       # CoinGecko data
+│   └── DefiModule         # sAVAX + ERC-4626 vaults
+├── MCP Server             # 91-tool server for AI agents
+└── Errors                 # Typed errors with codes
 ```
 
 ## Features
@@ -480,8 +568,8 @@ logiqical
 - **execute() pattern** — one-liner: policy &rarr; simulate &rarr; sign &rarr; broadcast
 - **Spending policies** — per-tx limits, hourly/daily budgets, allowlists, dry-run
 - **Transaction simulation** — eth_call before broadcast catches reverts early
-- **88 MCP tools** — plug into Claude, Cursor, or any MCP client
-- **11 modules** — ARENA swap, staking, launchpad, DEX, tickets, perps, bridge, social, signals, market, DeFi
+- **91 MCP tools** — plug into Claude, Cursor, or any MCP client
+- **15 modules** — ARENA swap, staking, launchpad, DEX, tickets, perps, bridge, social, signals, market, DeFi, copy trading, agent registration, feed auto-posting
 - **20 EVM chains** — Avalanche, Ethereum, Base, Arbitrum, and 16 more
 - **Typed errors** — `LogiqicalError` with codes like `SLIPPAGE_EXCEEDED`, `CONTRACT_REVERT`
 - **Dual build** — ESM + CJS + TypeScript declarations

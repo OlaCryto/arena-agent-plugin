@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { Logiqical } from "../client.js";
+import { SocialModule } from "../modules/social.js";
 
 function ok(data: any) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
@@ -634,6 +635,85 @@ export function createMcpServer(agent: Logiqical): McpServer {
 
   server.tool("policy_budget", "Get budget status: spent this hour, today, remaining", {}, async () => {
     try { return ok(agent.getBudgetStatus()); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Agent Registration ──
+
+  server.tool("agent_register", "Register a new AI agent on Arena (returns API key — save immediately)", {
+    name: z.string().describe("Agent display name"),
+    handle: z.string().describe("Unique agent handle"),
+    address: z.string().describe("Agent wallet address"),
+    bio: z.string().optional().describe("Agent bio"),
+    profilePictureUrl: z.string().optional().describe("Profile picture URL"),
+    bannerUrl: z.string().optional().describe("Banner image URL"),
+  }, async (opts) => {
+    try { return ok(await SocialModule.registerAgent(opts)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Feed Auto-Posting ──
+
+  server.tool("social_post_trade", "Auto-post a trade update to Arena feed", {
+    action: z.enum(["buy", "sell", "swap", "bridge", "stake", "long", "short", "close"]).describe("Trade action"),
+    token: z.string().optional().describe("Token symbol"),
+    amount: z.string().optional().describe("Amount traded"),
+    price: z.string().optional().describe("Price in USD"),
+    fromToken: z.string().optional().describe("Source token (for swaps)"),
+    toToken: z.string().optional().describe("Destination token (for swaps)"),
+    pnl: z.string().optional().describe("PnL for closed positions"),
+    hash: z.string().optional().describe("Transaction hash"),
+    extra: z.string().optional().describe("Additional info"),
+  }, async (trade) => {
+    try { return ok(await agent.social.postTradeUpdate(trade)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Copy Trading ──
+
+  server.tool("copy_get_positions", "Get open positions of a Hyperliquid wallet (target for copy trading)", {
+    wallet: z.string().describe("Target wallet address to copy"),
+  }, async ({ wallet }) => {
+    try { return ok(await agent.copyTrading.getTargetPositions(wallet)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("copy_calculate_orders", "Compare target vs agent positions and calculate mirror orders", {
+    targetWallet: z.string().describe("Wallet to copy from"),
+    agentWallet: z.string().optional().describe("Your agent wallet (defaults to agent address)"),
+    scaleFactor: z.number().optional().describe("Position scale (0.1 = 10% of target size, default 0.1)"),
+  }, async ({ targetWallet, agentWallet, scaleFactor }) => {
+    try { return ok(await agent.copyTrading.calculateMirrorOrders(targetWallet, agentWallet || w, scaleFactor)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("copy_execute", "One-shot copy trade: mirror a wallet's positions (calculate + execute)", {
+    targetWallet: z.string().describe("Wallet to copy from"),
+    agentWallet: z.string().optional().describe("Your agent wallet (defaults to agent address)"),
+    scaleFactor: z.number().optional().describe("Position scale (0.1 = 10% of target size, default 0.1)"),
+  }, async ({ targetWallet, agentWallet, scaleFactor }) => {
+    try { return ok(await agent.copyTrading.copyOnce(targetWallet, agentWallet || w, scaleFactor)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Perps USDC Deposit ──
+
+  server.tool("perps_deposit_info", "Get Hyperliquid deposit info (addresses, chain, USDC)", {}, async () => {
+    try { return ok(agent.perps.getDepositInfo()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_arbitrum_usdc_balance", "Check USDC balance on Arbitrum", {
+    wallet: z.string().optional().describe("Wallet (defaults to agent)"),
+  }, async ({ wallet }) => {
+    try { return ok({ balance: await agent.perps.getArbitrumUSDCBalance(wallet || w), token: "USDC", chain: "Arbitrum" }); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_deposit_usdc", "Build USDC deposit tx for Hyperliquid (execute on Arbitrum network)", {
+    amount: z.string().describe("USDC amount to deposit"),
+  }, async ({ amount }) => {
+    try { return ok(agent.perps.buildDepositUSDC(amount)); }
     catch (e) { return err(e); }
   });
 

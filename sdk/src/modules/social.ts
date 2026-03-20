@@ -1,9 +1,84 @@
 import { ARENA_SOCIAL_API } from "../constants.js";
 
+export interface AgentRegistration {
+  agentId: string;
+  apiKey: string;
+  verificationCode: string;
+  id: string;
+  handle: string;
+  userName: string;
+  address: string;
+  createdOn: string;
+}
+
 export class SocialModule {
   constructor(private arenaApiKey?: string) {}
 
   setArenaApiKey(key: string) { this.arenaApiKey = key; }
+
+  // ── Agent Registration (no auth needed — returns API key) ──
+
+  /**
+   * Register a new AI agent on Arena. Returns API key (shown once — save immediately).
+   * After registration, owner must claim by posting: "I'm claiming my AI Agent \"<name>\"\nVerification Code: <code>"
+   */
+  static async registerAgent(opts: {
+    name: string;
+    handle: string;
+    address: string;
+    bio?: string;
+    profilePictureUrl?: string;
+    bannerUrl?: string;
+  }): Promise<AgentRegistration> {
+    const res = await fetch(`${ARENA_SOCIAL_API}/agents/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(opts),
+    });
+    const data: any = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || `Registration failed (${res.status})`);
+    return data as AgentRegistration;
+  }
+
+  // ── Feed Auto-Posting (trade updates) ──
+
+  /** Post a formatted trade update to the Arena feed */
+  async postTradeUpdate(trade: {
+    action: "buy" | "sell" | "swap" | "bridge" | "stake" | "long" | "short" | "close";
+    token?: string;
+    amount?: string;
+    price?: string;
+    fromToken?: string;
+    toToken?: string;
+    pnl?: string;
+    hash?: string;
+    extra?: string;
+  }): Promise<any> {
+    const lines: string[] = [];
+    const emoji: Record<string, string> = {
+      buy: "🟢", sell: "🔴", swap: "🔄", bridge: "🌉", stake: "🔒", long: "📈", short: "📉", close: "✅",
+    };
+    const icon = emoji[trade.action] || "💰";
+
+    if (trade.action === "swap" && trade.fromToken && trade.toToken) {
+      lines.push(`${icon} Swapped ${trade.amount || ""} ${trade.fromToken} → ${trade.toToken}`);
+    } else if (trade.action === "bridge" && trade.fromToken) {
+      lines.push(`${icon} Bridged ${trade.amount || ""} ${trade.fromToken}`);
+    } else if (trade.action === "long" || trade.action === "short") {
+      lines.push(`${icon} Opened ${trade.action.toUpperCase()} ${trade.token || ""} ${trade.amount ? `(${trade.amount})` : ""}`);
+    } else if (trade.action === "close") {
+      lines.push(`${icon} Closed ${trade.token || ""} position${trade.pnl ? ` | PnL: ${trade.pnl}` : ""}`);
+    } else {
+      lines.push(`${icon} ${trade.action.toUpperCase()} ${trade.amount || ""} ${trade.token || ""}`);
+    }
+
+    if (trade.price) lines.push(`Price: $${trade.price}`);
+    if (trade.hash) lines.push(`tx: ${trade.hash}`);
+    if (trade.extra) lines.push(trade.extra);
+
+    const content = lines.join("<br>");
+    return this.createThread(content);
+  }
 
   private async request(method: "GET" | "POST" | "PATCH", path: string, body?: any, query?: Record<string, string>): Promise<any> {
     if (!this.arenaApiKey) throw new Error("Arena API key required for social endpoints. Pass arenaApiKey in config.");

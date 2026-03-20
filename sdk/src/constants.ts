@@ -28,6 +28,12 @@ export const ARENA_SOCIAL_API = "https://api.starsarena.com";
 export const LIFI_API = "https://li.quest/v1";
 export const HL_INFO = "https://api.hyperliquid.xyz/info";
 
+// ── Hyperliquid Deposit (Arbitrum) ──
+export const HL_DEPOSIT_ADDRESS = "0x2Df1c51E09aECF9cacB7bc98cB1742757f163dF7";
+export const USDC_ARBITRUM = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+export const ARBITRUM_CHAIN_ID = 42161;
+export const ARBITRUM_RPC = "https://arb1.arbitrum.io/rpc";
+
 // ── Default Settings ──
 export const DEFAULT_SLIPPAGE_BPS = 500;
 
