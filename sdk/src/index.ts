@@ -23,6 +23,8 @@ export { SignalsModule } from "./modules/signals.js";
 export type { MarketSignal, TechnicalSignal, SignalSummary } from "./modules/signals.js";
 export { MarketModule } from "./modules/market.js";
 export { DefiModule } from "./modules/defi.js";
+export { X402Module } from "./modules/x402.js";
+export type { X402PaymentInfo } from "./modules/x402.js";
 
 // Errors
 export { LogiqicalError } from "./errors.js";

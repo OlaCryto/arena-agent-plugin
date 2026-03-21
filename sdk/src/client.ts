@@ -13,6 +13,7 @@ import { SignalsModule } from "./modules/signals.js";
 import { MarketModule } from "./modules/market.js";
 import { DefiModule } from "./modules/defi.js";
 import { CopyTradingModule } from "./modules/copytrading.js";
+import { X402Module } from "./modules/x402.js";
 import type { UnsignedTx, CallIntent, TransactionResult } from "./types.js";
 import type { TransactionResponse } from "ethers";
 
@@ -76,6 +77,8 @@ export class Logiqical {
   readonly defi: DefiModule;
   /** Copy trading — mirror Hyperliquid wallet positions */
   readonly copyTrading: CopyTradingModule;
+  /** x402 micropayments — create paywalled APIs, pay for access */
+  readonly x402: X402Module;
 
   /** The agent's wallet address */
   readonly address: string;
@@ -131,6 +134,7 @@ export class Logiqical {
     this.market = new MarketModule();
     this.defi = new DefiModule(this.provider);
     this.copyTrading = new CopyTradingModule(this.perps);
+    this.x402 = new X402Module(this.provider);
   }
 
   // ── Factory Methods ──

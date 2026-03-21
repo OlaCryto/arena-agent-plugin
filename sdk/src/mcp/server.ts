@@ -13,7 +13,7 @@ function err(e: unknown) {
 }
 
 export function createMcpServer(agent: Logiqical): McpServer {
-  const server = new McpServer({ name: "logiqical", version: "0.3.0" });
+  const server = new McpServer({ name: "logiqical", version: "0.7.0" });
   const w = agent.address;
 
   // ── Wallet ──
@@ -39,6 +39,42 @@ export function createMcpServer(agent: Logiqical): McpServer {
     message: z.string().describe("Message to sign"),
   }, async ({ message }) => {
     try { return ok({ signature: await agent.signMessage(message) }); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("sign_typed_data", "Sign EIP-712 typed data (used for perps auth)", {
+    domain: z.record(z.any()).describe("EIP-712 domain"),
+    types: z.record(z.any()).describe("EIP-712 types"),
+    value: z.record(z.any()).describe("EIP-712 value"),
+  }, async ({ domain, types, value }) => {
+    try { return ok({ signature: await agent.signTypedData(domain, types, value) }); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("simulate_tx", "Simulate a transaction (dry-run via eth_call)", {
+    to: z.string().describe("Contract address"),
+    data: z.string().describe("Encoded calldata"),
+    value: z.string().optional().describe("Value in wei"),
+  }, async ({ to, data, value }) => {
+    try { await agent.simulate({ to, data, value: value || "0", chainId: 43114 }); return ok({ status: "simulation_passed" }); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("switch_network", "Switch network (avalanche or fuji)", {
+    network: z.string().describe("Network name: 'avalanche' or 'fuji'"),
+  }, async ({ network }) => {
+    try { const newAgent = agent.switchNetwork(network); return ok({ status: "switched", network, address: newAgent.address }); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("update_policy", "Update specific policy fields (partial update)", {
+    maxPerTx: z.string().optional().describe("Max AVAX per transaction"),
+    maxPerHour: z.string().optional().describe("Max AVAX per hour"),
+    maxPerDay: z.string().optional().describe("Max AVAX per day"),
+    simulateBeforeSend: z.boolean().optional().describe("Simulate before sending"),
+    dryRun: z.boolean().optional().describe("Dry run mode"),
+  }, async (updates) => {
+    try { agent.updatePolicy(updates); return ok({ status: "policy_updated", policy: agent.getPolicy() }); }
     catch (e) { return err(e); }
   });
 
@@ -313,6 +349,24 @@ export function createMcpServer(agent: Logiqical): McpServer {
     catch (e) { return err(e); }
   });
 
+  server.tool("bridge_token", "Get specific token info on a chain", {
+    chainId: z.number().describe("Chain ID (e.g. 43114)"),
+    address: z.string().describe("Token contract address"),
+  }, async ({ chainId, address }) => {
+    try { return ok(await agent.bridge.getToken(chainId, address)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("bridge_connections", "Get available bridge connections between chains", {
+    fromChainId: z.number().describe("Source chain ID"),
+    toChainId: z.number().describe("Destination chain ID"),
+    fromToken: z.string().optional().describe("Source token address"),
+    toToken: z.string().optional().describe("Destination token address"),
+  }, async ({ fromChainId, toChainId, fromToken, toToken }) => {
+    try { return ok(await agent.bridge.getConnections(fromChainId, toChainId, fromToken, toToken)); }
+    catch (e) { return err(e); }
+  });
+
   // ── Perps ──
 
   server.tool("perps_register", "Register for perpetual futures on Hyperliquid", {}, async () => {
@@ -375,9 +429,56 @@ export function createMcpServer(agent: Logiqical): McpServer {
   });
 
   server.tool("perps_positions", "Get perps positions and margin summary", {
-    wallet: z.string().describe("Hyperliquid wallet address"),
+    wallet: z.string().optional().describe("Hyperliquid wallet address (defaults to agent)"),
   }, async ({ wallet }) => {
-    try { return ok(await agent.perps.getPositions(wallet)); }
+    try { return ok(await agent.perps.getPositions(wallet || w)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_auth_status", "Check Hyperliquid auth/onboarding status", {}, async () => {
+    try { return ok(await agent.perps.getAuthStatus()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_auth_payload", "Get auth signing payload for a step", {
+    step: z.string().describe("Auth step name"),
+    mainWalletAddress: z.string().optional().describe("Main wallet address"),
+  }, async ({ step, mainWalletAddress }) => {
+    try { return ok(await agent.perps.getAuthPayload(step, mainWalletAddress)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_auth_submit", "Submit auth signature for a step", {
+    step: z.string().describe("Auth step name"),
+    signature: z.string().describe("Signed payload"),
+    mainWalletAddress: z.string().optional().describe("Main wallet address"),
+    metadata: z.record(z.any()).optional().describe("Additional metadata"),
+  }, async ({ step, signature, mainWalletAddress, metadata }) => {
+    try { return ok(await agent.perps.submitAuthSignature(step, signature, mainWalletAddress, metadata)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_enable_hip3", "Enable HIP-3 for Hyperliquid", {}, async () => {
+    try { return ok(await agent.perps.enableHip3()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_trade_history", "Get perps trade executions history", {}, async () => {
+    try { return ok(await agent.perps.getTradeExecutions()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_open_orders", "Get open orders for a wallet on Hyperliquid", {
+    wallet: z.string().optional().describe("Wallet address (defaults to agent)"),
+  }, async ({ wallet }) => {
+    try { return ok(await agent.perps.getOpenOrders(wallet || w)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("perps_arbitrum_eth_balance", "Check ETH balance on Arbitrum (for gas)", {
+    wallet: z.string().optional().describe("Wallet (defaults to agent)"),
+  }, async ({ wallet }) => {
+    try { return ok({ balance: await agent.perps.getArbitrumETHBalance(wallet || w), token: "ETH", chain: "Arbitrum" }); }
     catch (e) { return err(e); }
   });
 
@@ -424,6 +525,20 @@ export function createMcpServer(agent: Logiqical): McpServer {
     count: z.number().optional().describe("Max opportunities (default 5)"),
   }, async ({ count }) => {
     try { return ok(await agent.signals.scan(count)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("signals_asset_contexts", "Get all Hyperliquid asset metadata and market contexts", {}, async () => {
+    try { return ok(await agent.signals.getAssetContexts()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("signals_candles", "Get raw candle/OHLCV data for charting", {
+    coin: z.string().describe("Asset symbol (BTC, ETH, SOL)"),
+    interval: z.string().optional().describe("Candle interval: 1m, 5m, 15m, 1h, 4h, 1d (default 1h)"),
+    count: z.number().optional().describe("Number of candles (default 100)"),
+  }, async ({ coin, interval, count }) => {
+    try { return ok(await agent.signals.getCandles(coin, interval, count)); }
     catch (e) { return err(e); }
   });
 
@@ -489,19 +604,26 @@ export function createMcpServer(agent: Logiqical): McpServer {
     catch (e) { return err(e); }
   });
 
-  server.tool("social_messages", "Read messages from a chat", {
+  server.tool("social_messages", "Read newer messages from a chat (latest, or after a timestamp)", {
     groupId: z.string().describe("Chat group UUID"),
-    after: z.string().optional().describe("Get messages after this timestamp"),
+    after: z.string().optional().describe("Timestamp (ms) — get messages after this time. Omit for latest."),
   }, async ({ groupId, after }) => {
     try { return ok(await agent.social.getMessages(groupId, after)); }
     catch (e) { return err(e); }
   });
 
+  server.tool("social_older_messages", "Read older message history from a chat (scroll back in time)", {
+    groupId: z.string().describe("Chat group UUID"),
+    before: z.string().optional().describe("Timestamp (ms) — get messages before this time. Omit for oldest available."),
+  }, async ({ groupId, before }) => {
+    try { return ok(await agent.social.getOlderMessages(groupId, before)); }
+    catch (e) { return err(e); }
+  });
+
   server.tool("social_create_thread", "Create a post/thread", {
-    content: z.string().describe("Post content"),
-    replyToId: z.string().optional(),
-  }, async ({ content, replyToId }) => {
-    try { return ok(await agent.social.createThread(content, replyToId)); }
+    content: z.string().describe("Post content (HTML formatting)"),
+  }, async ({ content }) => {
+    try { return ok(await agent.social.createThread(content)); }
     catch (e) { return err(e); }
   });
 
@@ -509,6 +631,488 @@ export function createMcpServer(agent: Logiqical): McpServer {
     threadId: z.string(),
   }, async ({ threadId }) => {
     try { return ok(await agent.social.likeThread(threadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_repost", "Repost/retweet a thread", {
+    threadId: z.string().describe("Thread ID to repost"),
+  }, async ({ threadId }) => {
+    try { return ok(await agent.social.repost(threadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_update_banner", "Update Arena profile banner image", {
+    bannerUrl: z.string().describe("Banner image URL"),
+  }, async ({ bannerUrl }) => {
+    try { return ok(await agent.social.updateBanner(bannerUrl)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_user_by_id", "Get Arena user by UUID", {
+    userId: z.string().describe("User UUID"),
+  }, async ({ userId }) => {
+    try { return ok(await agent.social.getUserById(userId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_followers", "Get a user's followers", {
+    userId: z.string().describe("User UUID"),
+    page: z.number().optional().describe("Page number (default 1)"),
+    pageSize: z.number().optional().describe("Results per page (default 20)"),
+  }, async ({ userId, page, pageSize }) => {
+    try { return ok(await agent.social.getFollowers(userId, page, pageSize)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_following", "Get who a user follows", {
+    userId: z.string().describe("User UUID"),
+    page: z.number().optional().describe("Page number (default 1)"),
+    pageSize: z.number().optional().describe("Results per page (default 20)"),
+  }, async ({ userId, page, pageSize }) => {
+    try { return ok(await agent.social.getFollowing(userId, page, pageSize)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_shares_stats", "Get shares/ticket stats for a user", {
+    userId: z.string().describe("User UUID"),
+  }, async ({ userId }) => {
+    try { return ok(await agent.social.getSharesStats(userId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_shareholders", "Get share holders for a user", {
+    userId: z.string().optional().describe("User UUID"),
+    page: z.number().optional().describe("Page number (default 1)"),
+    pageSize: z.number().optional().describe("Results per page (default 20)"),
+  }, async ({ userId, page, pageSize }) => {
+    try { return ok(await agent.social.getShareHolders(userId, page, pageSize)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_holdings", "Get agent's share holdings", {
+    page: z.number().optional().describe("Page number (default 1)"),
+    pageSize: z.number().optional().describe("Results per page (default 20)"),
+  }, async ({ page, pageSize }) => {
+    try { return ok(await agent.social.getHoldings(page, pageSize)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_direct_messages", "List DM conversations", {}, async () => {
+    try { return ok(await agent.social.getDirectMessages()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_group_chats", "List group chat conversations", {}, async () => {
+    try { return ok(await agent.social.getGroupChats()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_group_info", "Get group chat details", {
+    groupId: z.string().describe("Chat group UUID"),
+  }, async ({ groupId }) => {
+    try { return ok(await agent.social.getGroup(groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_group_members", "Get members of a group chat", {
+    groupId: z.string().describe("Chat group UUID"),
+  }, async ({ groupId }) => {
+    try { return ok(await agent.social.getMembers(groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_get_or_create_dm", "Start a DM conversation with a user", {
+    userId: z.string().describe("User UUID"),
+  }, async ({ userId }) => {
+    try { return ok(await agent.social.getOrCreateDM(userId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_accept_chat", "Accept a chat invitation", {
+    groupId: z.string().describe("Chat group UUID"),
+  }, async ({ groupId }) => {
+    try { return ok(await agent.social.acceptChat(groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_search_messages", "Search chat messages", {
+    q: z.string().describe("Search query"),
+    groupId: z.string().optional().describe("Limit to specific group"),
+  }, async ({ q, groupId }) => {
+    try { return ok(await agent.social.searchMessages(q, groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_react", "React to a chat message", {
+    messageId: z.string().describe("Message UUID"),
+    groupId: z.string().describe("Chat group UUID"),
+    reaction: z.string().describe("Reaction emoji"),
+  }, async ({ messageId, groupId, reaction }) => {
+    try { return ok(await agent.social.react(messageId, groupId, reaction)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Social: Additional Chat ──
+
+  server.tool("social_unreact", "Remove a reaction from a chat message", {
+    messageId: z.string().describe("Message UUID"),
+    groupId: z.string().describe("Chat group UUID"),
+  }, async ({ messageId, groupId }) => {
+    try { return ok(await agent.social.unreact(messageId, groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_leave_chat", "Leave a chat conversation", {
+    groupId: z.string().describe("Chat group UUID"),
+  }, async ({ groupId }) => {
+    try { return ok(await agent.social.leaveChat(groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_search_rooms", "Search chat rooms by name", {
+    q: z.string().describe("Search query"),
+  }, async ({ q }) => {
+    try { return ok(await agent.social.searchRooms(q)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_search_dms", "Search direct message conversations", {
+    q: z.string().describe("Search query"),
+  }, async ({ q }) => {
+    try { return ok(await agent.social.searchDMs(q)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_search_project_chats", "Search project/group chats", {
+    q: z.string().describe("Search query"),
+  }, async ({ q }) => {
+    try { return ok(await agent.social.searchProjectChats(q)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_pin_group", "Pin or unpin a conversation", {
+    groupId: z.string().describe("Chat group UUID"),
+    isPinned: z.boolean().optional().describe("Pin (true) or unpin (false)"),
+  }, async ({ groupId, isPinned }) => {
+    try { return ok(await agent.social.pinGroup(groupId, isPinned ?? true)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_chat_settings", "Get chat privacy settings", {}, async () => {
+    try { return ok(await agent.social.getChatSettings()); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_update_chat_settings", "Update chat privacy settings", {
+    holders: z.boolean().describe("Allow key holders to DM"),
+    followers: z.boolean().describe("Allow followers to DM"),
+  }, async ({ holders, followers }) => {
+    try { return ok(await agent.social.updateChatSettings(holders, followers)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_messages_around", "Get messages surrounding a specific message", {
+    groupId: z.string().describe("Chat group UUID"),
+    messageId: z.string().describe("Target message UUID"),
+  }, async ({ groupId, messageId }) => {
+    try { return ok(await agent.social.getMessagesAround(groupId, messageId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_unread_messages", "Get messages around first unread message in a group", {
+    groupId: z.string().describe("Chat group UUID"),
+  }, async ({ groupId }) => {
+    try { return ok(await agent.social.getUnreadMessages(groupId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_mention_status", "Get mention counts grouped by chats", {
+    groupIds: z.string().optional().describe("Comma-separated group IDs to filter"),
+  }, async ({ groupIds }) => {
+    try { return ok(await agent.social.getMentionStatus(groupIds)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_mute_group", "Mute or unmute notifications for a group", {
+    groupId: z.string().describe("Chat group UUID"),
+    muted: z.boolean().optional().describe("Mute (true) or unmute (false)"),
+  }, async ({ groupId, muted }) => {
+    try { return ok(await agent.social.muteGroup(groupId, muted ?? true)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_chat_requests", "Search for users to start a DM with", {
+    q: z.string().optional().describe("Search query"),
+  }, async ({ q }) => {
+    try { return ok(await agent.social.getChatRequests(q)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Social: Threads & Feed ──
+
+  server.tool("social_user_profile", "Get detailed user profile by handle (may return more data than user_by_handle)", {
+    handle: z.string().describe("User handle (without @)"),
+  }, async ({ handle }) => {
+    try { return ok(await agent.social.getUserProfile(handle)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_get_thread", "Get a specific thread by ID", {
+    threadId: z.string().describe("Thread UUID"),
+  }, async ({ threadId }) => {
+    try { return ok(await agent.social.getThread(threadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_answer_thread", "Reply to a thread (uses Arena's answer endpoint)", {
+    content: z.string().describe("Reply content (HTML)"),
+    threadId: z.string().describe("Thread UUID to reply to"),
+    userId: z.string().describe("User ID of thread author"),
+  }, async ({ content, threadId, userId }) => {
+    try { return ok(await agent.social.answerThread(content, threadId, userId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_thread_answers", "Get replies to a thread", {
+    threadId: z.string().describe("Thread UUID"),
+    page: z.number().optional().describe("Page number"),
+  }, async ({ threadId, page }) => {
+    try { return ok(await agent.social.getThreadAnswers(threadId, page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_nested_answers", "Get nested replies to a thread", {
+    threadId: z.string().describe("Thread UUID"),
+    page: z.number().optional().describe("Page number"),
+  }, async ({ threadId, page }) => {
+    try { return ok(await agent.social.getNestedAnswers(threadId, page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_unlike_thread", "Unlike a previously liked thread", {
+    threadId: z.string().describe("Thread UUID"),
+  }, async ({ threadId }) => {
+    try { return ok(await agent.social.unlikeThread(threadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_delete_thread", "Delete a thread", {
+    threadId: z.string().describe("Thread UUID"),
+  }, async ({ threadId }) => {
+    try { return ok(await agent.social.deleteThread(threadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_delete_repost", "Delete a repost", {
+    threadId: z.string().describe("Original thread UUID"),
+  }, async ({ threadId }) => {
+    try { return ok(await agent.social.deleteRepost(threadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_quote_thread", "Quote a thread with your own commentary", {
+    content: z.string().describe("Your comment (HTML)"),
+    quotedThreadId: z.string().describe("Thread UUID to quote"),
+  }, async ({ content, quotedThreadId }) => {
+    try { return ok(await agent.social.quoteThread(content, quotedThreadId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_my_feed", "Get your personalized feed", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getMyFeed(page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_trending_posts", "Get trending posts on Arena", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getTrendingPosts(page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_user_threads", "Get all threads by a specific user", {
+    userId: z.string().describe("User UUID"),
+    page: z.number().optional().describe("Page number"),
+  }, async ({ userId, page }) => {
+    try { return ok(await agent.social.getUserThreads(userId, page)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Notifications ──
+
+  server.tool("social_notifications", "Get all notifications (likes, replies, follows, mentions)", {
+    page: z.number().optional().describe("Page number"),
+    type: z.string().optional().describe("Filter: like, repost, reply, follow, mention, quote"),
+  }, async ({ page, type }) => {
+    try { return ok(await agent.social.getNotifications(page, 20, type)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_unseen_notifications", "Get unread notifications", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getUnseenNotifications(page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_mark_notification_seen", "Mark a notification as seen", {
+    notificationId: z.string().describe("Notification UUID"),
+  }, async ({ notificationId }) => {
+    try { return ok(await agent.social.markNotificationSeen(notificationId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_mark_all_seen", "Mark all notifications as seen", {}, async () => {
+    try { return ok(await agent.social.markAllNotificationsSeen()); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Communities ──
+
+  server.tool("social_top_communities", "Get top communities on Arena", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getTopCommunities(page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_new_communities", "Get newly created communities", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getNewCommunities(page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_search_communities", "Search communities by name", {
+    q: z.string().describe("Search query"),
+  }, async ({ q }) => {
+    try { return ok(await agent.social.searchCommunities(q)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_community_feed", "Get threads from a community", {
+    communityId: z.string().describe("Community UUID"),
+    page: z.number().optional().describe("Page number"),
+  }, async ({ communityId, page }) => {
+    try { return ok(await agent.social.getCommunityFeed(communityId, page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_follow_community", "Join/follow a community", {
+    communityId: z.string().describe("Community UUID"),
+  }, async ({ communityId }) => {
+    try { return ok(await agent.social.followCommunity(communityId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_unfollow_community", "Leave/unfollow a community", {
+    communityId: z.string().describe("Community UUID"),
+  }, async ({ communityId }) => {
+    try { return ok(await agent.social.unfollowCommunity(communityId)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Shares (additional) ──
+
+  server.tool("social_earnings_breakdown", "Get earnings breakdown from shares", {
+    userId: z.string().describe("User UUID"),
+  }, async ({ userId }) => {
+    try { return ok(await agent.social.getEarningsBreakdown(userId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_holder_addresses", "Get on-chain addresses of share holders", {
+    userId: z.string().describe("User UUID"),
+  }, async ({ userId }) => {
+    try { return ok(await agent.social.getHolderAddresses(userId)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Stages ──
+
+  server.tool("social_create_stage", "Create an audio stage room", {
+    name: z.string().describe("Stage name"),
+    privacyType: z.number().optional().describe("0=public, 1=followers, 2=shareholders"),
+    scheduledStartTime: z.string().optional().describe("ISO datetime to schedule"),
+  }, async ({ name, privacyType, scheduledStartTime }) => {
+    try { return ok(await agent.social.createStage(name, { privacyType, scheduledStartTime })); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_start_stage", "Start a scheduled stage", {
+    stageId: z.string().describe("Stage UUID"),
+  }, async ({ stageId }) => {
+    try { return ok(await agent.social.startStage(stageId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_end_stage", "End a live stage", {
+    stageId: z.string().describe("Stage UUID"),
+  }, async ({ stageId }) => {
+    try { return ok(await agent.social.endStage(stageId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_active_stages", "Get active stages on Arena", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getActiveStages(page)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_stage_info", "Get details about a specific stage", {
+    stageId: z.string().describe("Stage UUID"),
+  }, async ({ stageId }) => {
+    try { return ok(await agent.social.getStageInfo(stageId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_join_stage", "Join a stage as listener or speaker", {
+    stageId: z.string().describe("Stage UUID"),
+    role: z.string().optional().describe("listener or speaker (default: listener)"),
+  }, async ({ stageId, role }) => {
+    try { return ok(await agent.social.joinStage(stageId, role)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_leave_stage", "Leave a stage", {
+    stageId: z.string().describe("Stage UUID"),
+  }, async ({ stageId }) => {
+    try { return ok(await agent.social.leaveStage(stageId)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── Livestreams ──
+
+  server.tool("social_create_livestream", "Create a livestream", {
+    name: z.string().describe("Livestream name"),
+    privacyType: z.number().optional().describe("0=public, 1=followers, 2=shareholders"),
+    scheduledStartTime: z.string().optional().describe("ISO datetime to schedule"),
+  }, async ({ name, privacyType, scheduledStartTime }) => {
+    try { return ok(await agent.social.createLivestream(name, { privacyType, scheduledStartTime })); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_start_livestream", "Start a scheduled livestream", {
+    livestreamId: z.string().describe("Livestream UUID"),
+  }, async ({ livestreamId }) => {
+    try { return ok(await agent.social.startLivestream(livestreamId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_end_livestream", "End a live livestream", {
+    livestreamId: z.string().describe("Livestream UUID"),
+  }, async ({ livestreamId }) => {
+    try { return ok(await agent.social.endLivestream(livestreamId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("social_active_livestreams", "Get active livestreams on Arena", {
+    page: z.number().optional().describe("Page number"),
+  }, async ({ page }) => {
+    try { return ok(await agent.social.getActiveLivestreams(page)); }
     catch (e) { return err(e); }
   });
 
@@ -696,6 +1300,21 @@ export function createMcpServer(agent: Logiqical): McpServer {
     catch (e) { return err(e); }
   });
 
+  server.tool("copy_agent_positions", "Get agent's own perps positions (for copy trading comparison)", {
+    wallet: z.string().optional().describe("Agent wallet (defaults to agent address)"),
+  }, async ({ wallet }) => {
+    try { return ok(await agent.copyTrading.getAgentPositions(wallet || w)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("copy_execute_orders", "Execute specific mirror orders (from copy_calculate_orders)", {
+    orders: z.array(z.record(z.any())).describe("Array of CopyOrder objects from calculate"),
+    currentPrices: z.record(z.number()).describe("Map of symbol → current price"),
+  }, async ({ orders, currentPrices }) => {
+    try { return ok(await agent.copyTrading.executeMirrorOrders(orders as any, currentPrices)); }
+    catch (e) { return err(e); }
+  });
+
   // ── Perps USDC Deposit ──
 
   server.tool("perps_deposit_info", "Get Hyperliquid deposit info (addresses, chain, USDC)", {}, async () => {
@@ -714,6 +1333,46 @@ export function createMcpServer(agent: Logiqical): McpServer {
     amount: z.string().describe("USDC amount to deposit"),
   }, async ({ amount }) => {
     try { return ok(agent.perps.buildDepositUSDC(amount)); }
+    catch (e) { return err(e); }
+  });
+
+  // ── x402 Micropayments ──
+
+  server.tool("x402_create", "Create a paywalled x402 API endpoint on ArenaX402", {
+    apiUrl: z.string().describe("Upstream API URL to paywall"),
+    merchantWallet: z.string().describe("Wallet address to receive payments"),
+    tokenAddress: z.string().describe("Payment token: 0x000...000 for AVAX, or ERC-20 address (ARENA/GLADIUS)"),
+    amountWei: z.string().describe("Price in wei"),
+    validForSec: z.number().describe("Session duration in seconds after payment"),
+    name: z.string().optional().describe("Display name for the API"),
+    description: z.string().optional().describe("Description shown on payment page"),
+    webhookUri: z.string().optional().describe("Webhook URL called when payment confirmed"),
+  }, async ({ apiUrl, merchantWallet, tokenAddress, amountWei, validForSec, name, description, webhookUri }) => {
+    try { return ok(await agent.x402.createApi({ apiUrl, merchantWallet, tokenAddress, amountWei, validForSec, name, description, webhookUri })); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("x402_access", "Access an x402 endpoint — returns 402 payment info or 200 content", {
+    apiId: z.string().describe("The x402 API ID"),
+    sessionId: z.string().optional().describe("X-402-Session header value (after payment)"),
+  }, async ({ apiId, sessionId }) => {
+    try { return ok(await agent.x402.access(apiId, sessionId)); }
+    catch (e) { return err(e); }
+  });
+
+  server.tool("x402_pay", "Execute on-chain payment for x402 access — handles both AVAX and ERC-20", {
+    session_id: z.string().describe("Session ID from 402 response"),
+    contract: z.string().describe("x402 payment contract address"),
+    amount_wei: z.string().describe("Payment amount in wei"),
+    merchant_wallet: z.string().describe("Merchant wallet address"),
+    token_address: z.string().describe("Token address (0x000...000 for native AVAX)"),
+  }, async ({ session_id, contract, amount_wei, merchant_wallet, token_address }) => {
+    try {
+      const payment = { session_id, contract, amount_wei, merchant_wallet, token_address, network: { chain_id: 43114, name: "Avalanche C-Chain" }, calls: {} as any };
+      const built = agent.x402.buildPayment(payment);
+      const results = await agent.execute(Promise.resolve(built));
+      return ok(results);
+    }
     catch (e) { return err(e); }
   });
 

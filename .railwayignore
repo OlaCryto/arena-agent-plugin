@@ -1,0 +1,8 @@
+mcp-server/
+sdk/node_modules/
+sdk/dist/
+node_modules/
+dist/
+arena.social.har
+*.har
+tmp_*.json
