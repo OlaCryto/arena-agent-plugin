@@ -1,8 +1,8 @@
 # Logiqical
 
-**Agent wallet SDK for Avalanche and Arena — ARENA token trading, staking, launchpad, DEX aggregation, perpetual futures, copy trading, cross-chain bridging, social, market signals, and DeFi operations**
+**The agent wallet SDK for Avalanche and Arena — 176 MCP tools across 22 modules. Trading, social, perps, bridging, signals, micropayments, and more.**
 
-Logiqical gives AI agents a **non-custodial** wallet on Avalanche with built-in spending policies, transaction simulation, and 91 MCP tools across 15 modules. Swap ARENA tokens, stake for rewards, trade 112,000+ launchpad tokens, bridge cross-chain, trade perps on Hyperliquid, copy trade top wallets, register agents on Arena, auto-post trades to feed, deposit USDC for perps, chat on Arena Social, track whale signals, and deposit into DeFi vaults. No backend, no browser, no human in the loop.
+Logiqical gives AI agents a **non-custodial** wallet on Avalanche with built-in spending policies, transaction simulation, and the most comprehensive Arena integration available. Swap ARENA tokens, stake for rewards, trade 112,000+ launchpad tokens, bridge cross-chain, trade perps on Hyperliquid, copy trade top wallets, full Arena social (chat, threads, feed, notifications, communities, stages, livestreams, shares), market signals, DeFi vaults, x402 micropayments, and more. No backend, no browser, no human in the loop.
 
 ## Install
 
@@ -44,7 +44,7 @@ await agent.execute(agent.dex.buildSwap(agent.address, "AVAX", "USDC", "10.0"));
 // Buy a launchpad token
 await agent.execute(agent.launchpad.buildBuy(agent.address, "42", "0.1"));
 
-// Stake AVAX → sAVAX (Benqi liquid staking)
+// Stake AVAX -> sAVAX (Benqi liquid staking)
 await agent.execute(agent.defi.buildSAvaxStake("5.0"));
 ```
 
@@ -61,7 +61,7 @@ console.log(agent.privateKey);  // 0x...
 ```typescript
 const agent = new Logiqical({
   privateKey: process.env.AGENT_PRIVATE_KEY,
-  arenaApiKey: "arena_...",  // for Social, Perps, Tickets
+  arenaApiKey: "ak_live_...",  // for Social, Perps, Tickets
 });
 ```
 
@@ -116,7 +116,7 @@ Buy and sell ARENA tokens on the LFJ DEX.
 ```typescript
 // Get a quote
 const quote = await agent.swap.quote("1.0");
-// → { avaxIn: '1.0', arenaOut: '12345.67', pricePerArena: '0.000081' }
+// -> { avaxIn: '1.0', arenaOut: '12345.67', pricePerArena: '0.000081' }
 
 // Buy ARENA with AVAX
 await agent.execute(agent.swap.buildBuy(agent.address, "1.0"));
@@ -126,7 +126,7 @@ await agent.execute(agent.swap.buildSell(agent.address, "max"));
 
 // Check balances
 const bal = await agent.swap.getBalances(agent.address);
-// → { avax: '5.2', arena: '12345.67' }
+// -> { avax: '5.2', arena: '12345.67' }
 ```
 
 ## ARENA Staking
@@ -136,7 +136,7 @@ Stake ARENA to become a Champion. Earn 2.5% of every token that graduates from A
 ```typescript
 // Check staking position
 const info = await agent.staking.getInfo(agent.address);
-// → { staked: '10000', pendingRewards: '42.5', apy: '12.3' }
+// -> { staked: '10000', pendingRewards: '42.5', apy: '12.3' }
 
 // Stake ARENA
 await agent.execute(agent.staking.buildStake(agent.address, "10000"));
@@ -164,7 +164,7 @@ const activity = await agent.launchpad.getActivity("42");
 // Get a quote
 const quote = await agent.launchpad.quote("42", "buy", "0.5");
 
-// Buy — auto-routes bonding curve OR graduated DEX
+// Buy -- auto-routes bonding curve OR graduated DEX
 await agent.execute(agent.launchpad.buildBuy(agent.address, "42", "0.5"));
 
 // Sell
@@ -177,13 +177,13 @@ const result = await agent.launchpad.launch(
 await agent.execute(result);
 ```
 
-## DEX — Swap Any Avalanche Token
+## DEX -- Swap Any Avalanche Token
 
 Swap any token pair via the LFJ DEX aggregator. 14+ tokens pre-loaded, or pass any ERC-20 address.
 
 ```typescript
 const quote = await agent.dex.quote("AVAX", "USDC", "10.0");
-// → { amountOut: '245.32', priceImpact: '0.02%' }
+// -> { amountOut: '245.32', priceImpact: '0.02%' }
 
 await agent.execute(agent.dex.buildSwap(agent.address, "AVAX", "USDC", "10.0"));
 
@@ -200,13 +200,13 @@ Buy and sell social tickets tied to Arena users.
 
 ```typescript
 const price = await agent.tickets.getBuyPrice("0xSubject");
-// → { priceAvax: '0.042', priceAfterFees: '0.046' }
+// -> { priceAvax: '0.042', priceAfterFees: '0.046' }
 
 await agent.execute(agent.tickets.buildBuyTx(agent.address, "0xSubject"));
 await agent.execute(agent.tickets.buildSellTx(agent.address, "0xSubject"));
 ```
 
-## Arena Perps — Perpetual Futures via Hyperliquid
+## Arena Perps -- Perpetual Futures via Hyperliquid
 
 Trade 250+ perpetual futures markets with up to 50x leverage. Powered by Arena + Hyperliquid.
 
@@ -228,17 +228,23 @@ const positions = await agent.perps.getPositions(wallet);
 
 // Close a position
 await agent.perps.closePosition("ETH", "long", 0.1, 3600);
+
+// Trade history
+const trades = await agent.perps.getTradeExecutions();
+
+// Auth flow for advanced features
+const status = await agent.perps.getAuthStatus();
 ```
 
-## Cross-Chain Bridging — Li.Fi
+## Cross-Chain Bridging -- Li.Fi
 
 Bridge tokens across 20+ chains via the Li.Fi aggregator.
 
 ```typescript
 // Get a bridge quote
 const quote = await agent.bridge.getQuote(
-  43114, 42161,         // Avalanche → Arbitrum
-  "0xNATIVE", "0xNATIVE",  // AVAX → ETH
+  43114, 42161,         // Avalanche -> Arbitrum
+  "0xNATIVE", "0xNATIVE",  // AVAX -> ETH
   "10.0", agent.address,
 );
 
@@ -253,36 +259,124 @@ const status = await agent.bridge.getStatus(txHash, 43114, 42161);
 // Discover chains and tokens
 const chains = await agent.bridge.getChains();
 const tokens = await agent.bridge.getTokens("43114,42161");
+
+// Get token info and connections
+const token = await agent.bridge.getToken(43114, "0x...");
+const connections = await agent.bridge.getConnections(43114, 42161, "0xFrom", "0xTo");
 ```
 
-## Arena Social
+## Arena Social -- Full Platform Integration
 
-Full Arena social integration — search users, chat, post threads, follow/unfollow.
+Complete Arena social API -- 78 tools covering chat, threads, feed, notifications, communities, stages, livestreams, and shares.
+
+### Users & Profile
 
 ```typescript
-// Get your profile
 const me = await agent.social.getMe();
-
-// Search and follow users
+const user = await agent.social.getUserByHandle("alice");
+const profile = await agent.social.getUserProfile("alice");
 const users = await agent.social.searchUsers("defi");
-await agent.social.follow(users[0].id);
+const top = await agent.social.getTopUsers();
+await agent.social.updateProfile({ bio: "Trading agent" });
+await agent.social.updateBanner("https://...");
+await agent.social.follow(userId);
+await agent.social.unfollow(userId);
+const followers = await agent.social.getFollowers(userId);
+const following = await agent.social.getFollowing(userId);
+```
 
-// Post a thread
+### Threads & Feed
+
+```typescript
+// Create posts, reply, like, repost
 await agent.social.createThread("Just bought 1000 ARENA. LFG!");
+await agent.social.answerThread("Great analysis!", threadId, userId);
+await agent.social.likeThread(threadId);
+await agent.social.repost(threadId);
+await agent.social.quoteThread(threadId, "Adding my take...");
 
-// Chat
+// Browse feed
+const feed = await agent.social.getMyFeed();
+const trending = await agent.social.getTrendingPosts();
+const userPosts = await agent.social.getUserThreads(userId);
+
+// Thread details
+const thread = await agent.social.getThread(threadId);
+const answers = await agent.social.getThreadAnswers(threadId);
+```
+
+### Chat & Messaging
+
+```typescript
 const convos = await agent.social.getConversations();
-await agent.social.sendMessage(convos[0].groupId, "gm");
+await agent.social.sendMessage(groupId, "gm");
+const msgs = await agent.social.getMessages(groupId);
+const older = await agent.social.getOlderMessages(groupId, timestamp);
+
+// DMs and groups
+const dms = await agent.social.getDirectMessages();
+const groups = await agent.social.getGroupChats();
+const dm = await agent.social.getOrCreateDM(userId);
+await agent.social.react(messageId, groupId, "thumbsup");
+await agent.social.searchMessages("keyword", groupId);
+```
+
+### Notifications
+
+```typescript
+const notifs = await agent.social.getNotifications();
+const unseen = await agent.social.getUnseenNotifications();
+await agent.social.markNotificationSeen(notifId);
+await agent.social.markAllNotificationsSeen();
+```
+
+### Communities
+
+```typescript
+const top = await agent.social.getTopCommunities();
+const newC = await agent.social.getNewCommunities();
+const results = await agent.social.searchCommunities("avalanche");
+const feed = await agent.social.getCommunityFeed(communityId);
+await agent.social.followCommunity(communityId);
+```
+
+### Shares & Earnings
+
+```typescript
+const stats = await agent.social.getSharesStats(userId);
+const holders = await agent.social.getShareHolders(userId);
+const holdings = await agent.social.getHoldings();
+const earnings = await agent.social.getEarningsBreakdown();
+const addresses = await agent.social.getHolderAddresses(userId);
+```
+
+### Stages (Audio Rooms)
+
+```typescript
+const stage = await agent.social.createStage({ title: "AMA" });
+await agent.social.startStage(stageId);
+const active = await agent.social.getActiveStages();
+await agent.social.joinStage(stageId);
+await agent.social.endStage(stageId);
+```
+
+### Livestreams
+
+```typescript
+const stream = await agent.social.createLivestream({ title: "Trading Live" });
+await agent.social.startLivestream(streamId);
+const active = await agent.social.getActiveLivestreams();
+await agent.social.endLivestream(streamId);
 ```
 
 ## Signals Intelligence
 
-Real-time market signals — whale tracking, funding rates, technicals, opportunity scanning.
+Real-time market signals -- whale tracking, funding rates, technicals, opportunity scanning.
 
 ```typescript
 // Full signal summary for an asset
 const signal = await agent.signals.summary("ETH");
-// → { market, technicals, whales, verdict: 'BULLISH' }
+// -> { market, technicals, whales, verdict: 'BULLISH' }
 
 // Scan all markets for opportunities
 const opportunities = await agent.signals.scan(5);
@@ -292,9 +386,15 @@ const funding = await agent.signals.getFundingExtremes(10);
 
 // Whale positions
 const whales = await agent.signals.getWhalePositions("BTC", 100000);
+
+// Candle data
+const candles = await agent.signals.getCandles("BTC", "1h", 100);
+
+// Asset contexts (all coins)
+const contexts = await agent.signals.getAssetContexts();
 ```
 
-## Market Data — CoinGecko
+## Market Data -- CoinGecko
 
 Real-time prices, trending coins, and market data.
 
@@ -316,32 +416,30 @@ const top = await agent.market.markets(20);
 const results = await agent.market.search("solana");
 ```
 
-## DeFi — Liquid Staking & ERC-4626 Vaults
+## DeFi -- Liquid Staking & ERC-4626 Vaults
 
-### sAVAX — Stake AVAX via Benqi
+### sAVAX -- Stake AVAX via Benqi
 
 ```typescript
 const info = await agent.defi.sAvaxInfo(agent.address);
-// → { exchangeRate: '1.05', balance: '10.0', balanceInAvax: '10.5' }
+// -> { exchangeRate: '1.05', balance: '10.0', balanceInAvax: '10.5' }
 
 const quote = await agent.defi.sAvaxStakeQuote("10.0");
-// → { avaxIn: '10.0', savaxOut: '9.52' }
+// -> { avaxIn: '10.0', savaxOut: '9.52' }
 
 await agent.execute(agent.defi.buildSAvaxStake("10.0"));
 await agent.execute(agent.defi.buildSAvaxUnstake(agent.address, "max"));
 ```
 
-### ERC-4626 Vaults — Any vault on Avalanche
+### ERC-4626 Vaults -- Any vault on Avalanche
 
 ```typescript
 const info = await agent.defi.vaultInfo("0xVaultAddress", agent.address);
-// → { name: 'yVault', sharePrice: '1.05', userShares: '100', userAssets: '105' }
-
 await agent.execute(agent.defi.buildVaultDeposit(agent.address, "0xVaultAddress", "1000"));
 await agent.execute(agent.defi.buildVaultWithdraw(agent.address, "0xVaultAddress", "max"));
 ```
 
-## Copy Trading — Mirror Hyperliquid Wallets
+## Copy Trading -- Mirror Hyperliquid Wallets
 
 Mirror any Hyperliquid wallet's perpetual positions with proportional sizing.
 
@@ -356,11 +454,36 @@ const { orders } = await agent.copyTrading.calculateMirrorOrders(
 
 // One-shot copy: calculate + execute
 const result = await agent.copyTrading.copyOnce("0xWhaleWallet", agent.address, 0.1);
+
+// Check your own positions
+const myPositions = await agent.copyTrading.getAgentPositions(agent.address);
+```
+
+## x402 Micropayments -- Paywalled APIs
+
+Create and access paywalled APIs using Arena's x402 protocol. Pay with AVAX, ARENA, or GLADIUS tokens.
+
+```typescript
+// Create a paywalled API endpoint
+const api = await agent.x402.createApi({
+  name: "Alpha Signals",
+  price: "0.01",
+  token: "AVAX",
+  endpoint: "https://myapi.com/signals",
+});
+
+// Access a paywalled resource (get payment instructions)
+const instructions = await agent.x402.access(apiId);
+// -> { paymentToken, paymentAmount, paymentReceiver, sessionId }
+
+// Build and execute the payment transaction
+const paymentTx = agent.x402.buildPayment(instructions);
+await agent.execute(paymentTx);
 ```
 
 ## Agent Registration
 
-Register a new AI agent on Arena. Returns an API key (shown once — save immediately).
+Register a new AI agent on Arena. Returns an API key (shown once -- save immediately).
 
 ```typescript
 import { SocialModule } from "logiqical";
@@ -427,7 +550,7 @@ const agent = await Logiqical.boot({
 
 // Check budget any time
 const budget = agent.getBudgetStatus();
-// → { spentToday: '3.2', dailyLimit: '20.0', remaining: '16.8' }
+// -> { spentToday: '3.2', dailyLimit: '20.0', remaining: '16.8' }
 
 // Update policy on the fly
 agent.updatePolicy({ maxPerTx: "2.0" });
@@ -448,7 +571,7 @@ await agent.call({
 
 ## MCP Server
 
-91 MCP tools for Claude, Cursor, Windsurf, or any MCP-compatible client.
+176 MCP tools for Claude, Cursor, Windsurf, or any MCP-compatible client.
 
 ### Setup
 
@@ -470,108 +593,35 @@ npx logiqical-mcp
       "args": ["logiqical-mcp"],
       "env": {
         "LOGIQICAL_PRIVATE_KEY": "0x...",
-        "ARENA_API_KEY": "arena_..."
+        "ARENA_API_KEY": "ak_live_..."
       }
     }
   }
 }
 ```
 
-### MCP Tools
+### All 176 MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `get_address` | Get agent wallet address |
-| `get_balance` | Get native token balance |
-| `send_avax` | Send AVAX to an address |
-| `sign_message` | Sign a message |
-| `get_balances` | AVAX + ARENA balances |
-| `swap_quote_buy` | Quote AVAX → ARENA |
-| `swap_quote_sell` | Quote ARENA → AVAX |
-| `swap_buy_arena` | Buy ARENA with AVAX |
-| `swap_sell_arena` | Sell ARENA for AVAX |
-| `stake_info` | Staked amount + pending rewards |
-| `stake_arena` | Stake ARENA tokens |
-| `unstake_arena` | Unstake + claim rewards |
-| `buy_and_stake` | Buy + stake in one flow |
-| `dex_tokens` | List known tokens |
-| `dex_token_info` | Look up any ERC-20 |
-| `dex_balance` | Check any token balance |
-| `dex_quote` | Quote any token pair |
-| `dex_swap` | Swap any tokens |
-| `launchpad_overview` | Platform stats |
-| `launchpad_recent` | Recently launched tokens |
-| `launchpad_token` | Full token info |
-| `launchpad_quote` | Bonding curve quote |
-| `launchpad_buy` | Buy launchpad token |
-| `launchpad_sell` | Sell launchpad token |
-| `tickets_buy_price` | Arena ticket buy price |
-| `tickets_sell_price` | Arena ticket sell price |
-| `tickets_balance` | Ticket balance |
-| `tickets_supply` | Ticket supply |
-| `tickets_fees` | Fee structure |
-| `tickets_buy` | Buy Arena tickets |
-| `tickets_sell` | Sell Arena tickets |
-| `bridge_info` | Bridge reference data |
-| `bridge_chains` | Supported bridge chains |
-| `bridge_tokens` | Tokens on chains |
-| `bridge_quote` | Bridge quote with tx |
-| `bridge_routes` | Multiple route options |
-| `bridge_status` | Check transfer status |
-| `perps_register` | Register for perps |
-| `perps_registration_status` | Check registration |
-| `perps_wallet_address` | Get Hyperliquid wallet |
-| `perps_trading_pairs` | All 250+ pairs |
-| `perps_update_leverage` | Set leverage |
-| `perps_place_order` | Place orders |
-| `perps_cancel_orders` | Cancel orders |
-| `perps_close_position` | Close a position |
-| `perps_orders` | View open orders |
-| `perps_positions` | Positions + margin |
-| `signals_market` | Market signal for an asset |
-| `signals_technical` | Technical analysis |
-| `signals_whales` | Whale positions |
-| `signals_funding` | Funding rate extremes |
-| `signals_summary` | Full signal digest |
-| `signals_scan` | Scan for opportunities |
-| `social_search_users` | Search Arena users |
-| `social_user_by_handle` | Get user by handle |
-| `social_me` | Your Arena profile |
-| `social_top_users` | Top Arena users |
-| `social_follow` | Follow a user |
-| `social_unfollow` | Unfollow a user |
-| `social_update_profile` | Update profile |
-| `social_conversations` | List chats |
-| `social_send_message` | Send a message |
-| `social_messages` | Read messages |
-| `social_create_thread` | Create a post |
-| `social_like_thread` | Like a thread |
-| `market_price` | Get coin prices |
-| `market_trending` | Trending coins |
-| `market_top` | Top by market cap |
-| `market_search` | Search coins |
-| `market_avax_price` | AVAX price |
-| `market_arena_price` | ARENA price |
-| `defi_savax_info` | sAVAX staking info |
-| `defi_savax_quote` | sAVAX stake quote |
-| `defi_savax_stake` | Stake AVAX → sAVAX |
-| `defi_savax_unstake` | Unstake sAVAX |
-| `defi_vault_info` | ERC-4626 vault info |
-| `defi_vault_quote` | Vault deposit quote |
-| `defi_vault_deposit` | Deposit into vault |
-| `defi_vault_withdraw` | Withdraw from vault |
-| `policy_get` | Get spending policy |
-| `policy_set` | Set spending policy |
-| `policy_budget` | Budget status |
-| `agent_register` | Register AI agent on Arena |
-| `social_post_trade` | Auto-post trade update to feed |
-| `copy_get_positions` | Get target wallet positions |
-| `copy_calculate_orders` | Calculate mirror orders |
-| `copy_execute` | One-shot copy trade |
-| `perps_deposit_info` | Hyperliquid deposit info |
-| `perps_arbitrum_usdc_balance` | USDC balance on Arbitrum |
-| `perps_deposit_usdc` | Build USDC deposit tx |
-| `call_contract` | Call any contract method |
+| Category | Tools | Description |
+|----------|-------|-------------|
+| Wallet | 8 | Address, balance, send, sign, simulate, switch network, update policy |
+| ARENA Token | 5 | Buy/sell ARENA, quotes, balances |
+| ARENA Staking | 4 | Stake, unstake, buy-and-stake, info |
+| DEX | 5 | Swap any token, quotes, balances, token list |
+| Arena Launchpad | 6 | Buy/sell launchpad tokens, quotes, discovery |
+| Arena Tickets | 7 | Buy/sell tickets, prices, balances, supply, fees |
+| Cross-Chain Bridge | 8 | Quotes, routes, status, chains, tokens, connections |
+| Arena Perps | 20 | Orders, positions, leverage, auth flow, trade history, USDC deposit |
+| Signals Intelligence | 8 | Market signals, technicals, whales, funding, candles, scan |
+| Arena Social | 78 | Full social API -- chat, threads, feed, notifications, communities, stages, livestreams, shares |
+| Agent Registration | 1 | Register AI agent on Arena |
+| Copy Trading | 5 | Mirror positions, calculate/execute mirror orders |
+| Market Data | 6 | Prices, trending, top coins, search |
+| DeFi | 8 | sAVAX staking, ERC-4626 vaults |
+| Policy | 3 | Get/set policy, budget status |
+| x402 Micropayments | 3 | Create paywalled API, access, pay |
+| Contract Call | 1 | Call any smart contract method |
+| **Total** | **176** | |
 
 ### Environment Variables
 
@@ -581,6 +631,20 @@ npx logiqical-mcp
 | `LOGIQICAL_NETWORK` | Network alias (default: `avalanche`) |
 | `LOGIQICAL_RPC_URL` | Custom RPC URL override |
 | `ARENA_API_KEY` | Arena API key (for Social, Perps, Tickets) |
+
+## REST API / HTTP Server
+
+Self-host the full SDK as a REST API for sandboxed agents (like Arena agents) that can only make HTTP calls.
+
+```bash
+# Start HTTP server on port 3000
+LOGIQICAL_PRIVATE_KEY=0x... ARENA_API_KEY=ak_live_... npx logiqical-http
+
+# Live deployment
+https://brave-alignment-production-1706.up.railway.app
+```
+
+Every MCP tool has a matching REST endpoint. See `/agents.md` for full API docs or `/prompt` for a ready-to-use agent instruction prompt.
 
 ## API Reference
 
@@ -615,15 +679,17 @@ Create an agent with existing keys.
 
 | Method | Description |
 |--------|-------------|
-| `agent.execute(buildResult)` | Policy check → simulate → sign → broadcast |
+| `agent.execute(buildResult)` | Policy check -> simulate -> sign -> broadcast |
 | `agent.call(intent)` | Call any contract method (policy-enforced) |
 | `agent.send(to, amount)` | Send native tokens (policy-enforced) |
 | `agent.simulate(tx)` | Simulate via eth_call |
 | `agent.getBalance()` | Get native token balance |
 | `agent.signMessage(message)` | Sign arbitrary message |
+| `agent.signTypedData(domain, types, value)` | EIP-712 typed data signing |
 | `agent.switchNetwork(network)` | Switch chain (returns new instance, same keys) |
 | `agent.getPolicy()` | Get current spending policy |
 | `agent.setPolicy(policy)` | Replace spending policy |
+| `agent.updatePolicy(updates)` | Partial policy update |
 | `agent.getBudgetStatus()` | Spent today, remaining budget |
 
 ## CLI
@@ -646,12 +712,12 @@ logiqical policy max-per-tx 2.0
 logiqical policy max-per-day 50.0
 
 # Set Arena API key
-logiqical config arena-key arena_abc123
+logiqical config arena-key ak_live_abc123
 ```
 
 ## Vault Daemon
 
-A separate signer process that holds the private key and enforces spending policies. The SDK and MCP server talk to the vault — keys never leave the vault process.
+A separate signer process that holds the private key and enforces spending policies. The SDK and MCP server talk to the vault -- keys never leave the vault process.
 
 ```bash
 # Start the vault (localhost:7842)
@@ -668,23 +734,9 @@ logiqical-vault --port 8000
 - Only localhost connections accepted
 - Budget tracking persists across restarts
 
-**Endpoints:**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/address` | Wallet address |
-| GET | `/policy` | Current spending policy |
-| POST | `/policy` | Update policy |
-| GET | `/budget` | Budget status (spent/remaining) |
-| POST | `/sign` | Sign a transaction (policy-enforced) |
-| POST | `/sign-message` | Sign an arbitrary message |
-| POST | `/sign-typed-data` | Sign EIP-712 typed data |
-| POST | `/broadcast` | Broadcast a signed transaction |
-
 ## Skill Packs
 
-Pre-written instruction files that teach AI agents how to use Logiqical. Drop into your agent host and it knows all 91 tools instantly.
+Pre-written instruction files that teach AI agents how to use Logiqical. Drop into your agent host and it knows all 176 tools instantly.
 
 **Claude Code / Claude Desktop:**
 ```bash
@@ -698,6 +750,33 @@ cp node_modules/logiqical/skills/logiqical/CODEX.md ~/.codex/skills/logiqical.md
 
 The skill packs cover every tool, the right usage patterns (check balance before trading, confirm with user before executing), safety rules, and Arena rate limits.
 
+## Architecture
+
+```
+logiqical
+├── Logiqical              # Main class -- wallet + execute() + policy
+├── AgentWallet            # Generate, boot, keystore, sign, broadcast
+├── PolicyEngine           # Per-tx limits, budgets, simulation, dry-run
+├── Modules (22)
+│   ├── SwapModule         # ARENA token buy/sell
+│   ├── StakingModule      # ARENA staking + rewards
+│   ├── LaunchpadModule    # Arena launchpad bonding curves
+│   ├── DexModule          # Any-token swaps (LFJ DEX)
+│   ├── TicketsModule      # Arena social tickets
+│   ├── PerpsModule        # Perpetual futures + USDC deposit (Hyperliquid)
+│   ├── BridgeModule       # Cross-chain (Li.Fi)
+│   ├── SocialModule       # Arena social -- chat, threads, feed, notifications,
+│   │                      #   communities, stages, livestreams, shares (78 tools)
+│   ├── CopyTradingModule  # Mirror Hyperliquid wallet positions
+│   ├── SignalsModule      # Market intelligence + candles
+│   ├── MarketModule       # CoinGecko data
+│   ├── DefiModule         # sAVAX + ERC-4626 vaults
+│   └── X402Module         # x402 micropayments (create, access, pay)
+├── MCP Server             # 176-tool server for AI agents
+├── HTTP Server            # REST API for sandboxed agents
+└── Errors                 # Typed errors with codes
+```
+
 ## Key Contracts
 
 | Contract | Address |
@@ -710,12 +789,41 @@ The skill packs cover every tool, the right usage patterns (check balance before
 | Token Manager | `0x2196e106af476f57618373ec028924767c758464` |
 | sAVAX (Benqi) | `0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE` |
 | WAVAX | `0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7` |
+| GLADIUS | `0x34a1D2105dd1b658A48EAD516A9CE3032082799C` |
 
 All on Avalanche C-Chain (chainId: 43114).
 
+## Features
+
+- **Standalone** -- no backend needed, direct contract calls + API calls
+- **Agent wallet** -- generate, boot from keystore, import key or mnemonic
+- **execute() pattern** -- one-liner: policy -> simulate -> sign -> broadcast
+- **Spending policies** -- per-tx limits, hourly/daily budgets, allowlists, dry-run
+- **Transaction simulation** -- eth_call before broadcast catches reverts early
+- **176 MCP tools** -- plug into Claude, Cursor, or any MCP client
+- **22 modules** -- ARENA swap, staking, launchpad, DEX, tickets, perps, bridge, social (chat/threads/feed/notifications/communities/stages/livestreams/shares), signals, market, DeFi, copy trading, x402 micropayments, agent registration, feed auto-posting
+- **78 social tools** -- the most comprehensive Arena social integration: threads, feed, notifications, communities, stages, livestreams, shares, DMs, group chats
+- **x402 micropayments** -- create paywalled APIs, access content, pay with AVAX/ARENA/GLADIUS
+- **20 EVM chains** -- Avalanche, Ethereum, Base, Arbitrum, and 16 more
+- **REST API** -- self-host for sandboxed agents that can only make HTTP calls
+- **Typed errors** -- `LogiqicalError` with codes like `SLIPPAGE_EXCEEDED`, `CONTRACT_REVERT`
+- **Dual build** -- ESM + CJS + TypeScript declarations
+- **SSRF protection** -- safe fetch with HTTPS enforcement, timeout, size limits
+
 ## Acknowledgments
 
-SDK architecture inspired by [Evalanche](https://github.com/iJaack/Evalanche) by [@iJaack](https://github.com/iJaack) — the execute() pattern, spending policies, keystore boot flow, and MCP server design were influenced by his work on agent tooling for Avalanche.
+SDK architecture inspired by [Evalanche](https://github.com/iJaack/Evalanche) by [@iJaack](https://github.com/iJaack) -- the execute() pattern, spending policies, keystore boot flow, and MCP server design were influenced by his work on agent tooling for Avalanche.
+
+## Built on
+
+- [Avalanche C-Chain](https://avax.network)
+- [Arena](https://arena.social) -- Social, Perps, Launchpad, Tickets
+- [LFJ (Trader Joe)](https://lfj.gg) -- DEX aggregation
+- [Benqi](https://benqi.fi) -- sAVAX liquid staking
+- [Li.Fi](https://li.fi) -- Cross-chain bridging
+- [Hyperliquid](https://hyperliquid.xyz) -- Perpetual futures
+- [CoinGecko](https://coingecko.com) -- Market data
+- [ArenaPay](https://arenapay.ai) -- x402 micropayments
 
 ## License
 
