@@ -1405,18 +1405,24 @@ async function main() {
 
   const w = agent.address;
 
-  // Fire-and-forget execute: broadcast tx, return hash immediately without waiting for confirmation
+  // Execute transactions: for multi-tx arrays (e.g. approve+deposit), wait for confirmation
+  // between each tx to ensure on-chain state is updated before the next tx.
   async function fastExecute(resultOrPromise: any) {
     const result = await resultOrPromise;
     const txs: UnsignedTx[] = result.transactions ?? (result.transaction ? [result.transaction] : []);
     if (txs.length === 0) throw new Error("No transactions to execute.");
 
     const hashes: string[] = [];
-    for (const utx of txs) {
+    for (let i = 0; i < txs.length; i++) {
+      const utx = txs[i];
       agent.policyEngine.check(utx);
       const txResponse = await agent.signAndBroadcast(utx);
       hashes.push(txResponse.hash);
-      // Don't await confirmation — return hash immediately
+      // Wait for confirmation between txs (critical for approve+deposit patterns)
+      // Skip waiting on the last tx for faster response
+      if (i < txs.length - 1) {
+        await txResponse.wait(1);
+      }
     }
     return { hashes, status: "broadcast", message: "Transactions broadcast. Check hashes on explorer." };
   }
