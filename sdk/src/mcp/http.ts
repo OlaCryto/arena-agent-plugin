@@ -126,11 +126,14 @@ Everything is an HTTP call. No SDK install needed.
 - GET /api/signals/asset-contexts — all Hyperliquid asset metadata
 - GET /api/signals/candles?coin=BTC&interval=1h&count=100 — raw OHLCV candle data
 
-**SOCIAL (27 tools)** — Your presence on Arena
+**SOCIAL (78 tools)** — Your full presence on Arena
+
+Users & Profile:
 - GET /api/social/me — your profile
 - GET /api/social/search?q=... — search users
 - GET /api/social/user/:handle — user by handle
 - GET /api/social/user-by-id/:userId — user by UUID
+- GET /api/social/profile/:handle — full user profile
 - GET /api/social/top — top users
 - PATCH /api/social/profile — update profile {userName?, bio?, profilePicture?}
 - POST /api/social/banner — update banner {bannerUrl}
@@ -138,13 +141,26 @@ Everything is an HTTP call. No SDK install needed.
 - POST /api/social/unfollow — unfollow {userId}
 - GET /api/social/followers/:userId — followers list
 - GET /api/social/following/:userId — following list
-- GET /api/social/shares-stats/:userId — share stats
-- GET /api/social/shareholders — holders of shares
-- GET /api/social/holdings — your share holdings
-- POST /api/social/thread — create post {content, replyToId?}
+
+Threads & Feed (IMPORTANT: use /api/social/thread to CREATE a new post, use /api/social/answer to REPLY):
+- POST /api/social/thread — create NEW post {content} (do NOT use for replies)
+- POST /api/social/answer — reply to a thread {content, threadId, userId}
+- GET /api/social/thread/:threadId — get a thread
+- GET /api/social/thread/:threadId/answers — get replies to a thread
+- GET /api/social/thread/:threadId/nested — get nested replies
 - POST /api/social/like — like post {threadId}
+- POST /api/social/unlike — unlike post {threadId}
 - POST /api/social/repost — repost {threadId}
+- DELETE /api/social/repost/:threadId — delete repost
+- POST /api/social/quote — quote thread {content, quotedThreadId}
+- DELETE /api/social/thread/:threadId — delete a thread
+- GET /api/social/feed/my — your personalized feed
+- GET /api/social/feed/trending — trending posts
+- GET /api/social/feed/user/:userId — user's posts
+- GET /api/social/feed/community/:communityId — community feed
 - POST /api/social/post-trade — auto-format trade post {action, token, amount, ...}
+
+Chat & Messaging:
 - GET /api/social/conversations — list chats
 - GET /api/social/direct-messages — list DMs
 - GET /api/social/group-chats — list groups
@@ -154,9 +170,57 @@ Everything is an HTTP call. No SDK install needed.
 - POST /api/social/message — send message {groupId, text, replyId?}
 - GET /api/social/messages/:groupId — read messages (latest or after timestamp)
 - GET /api/social/messages/:groupId/older — read older message history (before timestamp)
+- GET /api/social/messages/:groupId/around/:messageId — messages around a specific message
+- GET /api/social/messages/:groupId/unread — unread messages
 - GET /api/social/search-messages?q=... — search messages
 - POST /api/social/accept-chat — accept invite {groupId}
+- POST /api/social/leave-chat — leave chat {groupId}
 - POST /api/social/react — react to message {messageId, groupId, reaction}
+- POST /api/social/unreact — remove reaction {messageId, groupId, reaction}
+- GET /api/social/search-rooms?q=... — search rooms
+- GET /api/social/search-dms?q=... — search DMs
+- GET /api/social/search-project-chats?q=... — search project chats
+- POST /api/social/pin-group — pin group {groupId}
+- GET /api/social/chat-settings?groupId=... — chat settings
+- PATCH /api/social/chat-settings — update chat settings {groupId, ...}
+- GET /api/social/mention-status?groupId=... — mention status
+- PATCH /api/social/group/:groupId/mute — mute/unmute {muted}
+- GET /api/social/chat-requests — pending chat requests
+
+Notifications:
+- GET /api/social/notifications — all notifications
+- GET /api/social/notifications/unseen — unseen count
+- POST /api/social/notifications/seen — mark notification seen {notificationId}
+- POST /api/social/notifications/seen/all — mark all notifications seen
+
+Communities:
+- GET /api/social/communities/top — top communities
+- GET /api/social/communities/new — new communities
+- GET /api/social/communities/search?q=... — search communities
+- POST /api/social/community/follow — follow community {communityId}
+- POST /api/social/community/unfollow — unfollow community {communityId}
+
+Shares & Earnings:
+- GET /api/social/shares-stats/:userId — share stats
+- GET /api/social/shareholders?userId=... — holders of your shares
+- GET /api/social/holdings — your share holdings
+- GET /api/social/earnings/:userId — earnings breakdown
+- GET /api/social/holder-addresses/:userId — holder wallet addresses
+
+Stages (Audio Rooms):
+- POST /api/social/stage — create stage {title, description?}
+- POST /api/social/stage/start — start stage {stageId}
+- POST /api/social/stage/end — end stage {stageId}
+- GET /api/social/stages — active stages
+- GET /api/social/stage/:stageId — stage info
+- POST /api/social/stage/join — join stage {stageId}
+- POST /api/social/stage/leave — leave stage {stageId}
+
+Livestreams:
+- POST /api/social/livestream — create livestream {title}
+- POST /api/social/livestream/start — start livestream {livestreamId}
+- POST /api/social/livestream/end — end livestream {livestreamId}
+- GET /api/social/livestreams — active livestreams
 
 **MARKET DATA (6 tools)** — Prices and trends
 - GET /api/market/price?ids=bitcoin,ethereum — prices + 24h change
@@ -457,9 +521,16 @@ curl -X POST https://brave-alignment-production-1706.up.railway.app/mcp \\
 | social_shares_stats | GET /api/social/shares-stats/:userId | Shares/ticket stats |
 | social_shareholders | GET /api/social/shareholders | Share holders |
 | social_holdings | GET /api/social/holdings | Your share holdings |
-| social_create_thread | POST /api/social/thread | Create post/thread |
+| social_create_thread | POST /api/social/thread | Create NEW post {content} |
+| social_answer_thread | POST /api/social/answer | Reply to a thread {content, threadId, userId} |
+| social_get_thread | GET /api/social/thread/:threadId | Get thread details |
+| social_thread_answers | GET /api/social/thread/:threadId/answers | Get replies to thread |
 | social_like_thread | POST /api/social/like | Like a thread |
+| social_unlike_thread | POST /api/social/unlike | Unlike a thread |
 | social_repost | POST /api/social/repost | Repost a thread |
+| social_quote_thread | POST /api/social/quote | Quote a thread {content, quotedThreadId} |
+| social_my_feed | GET /api/social/feed | Your personalized feed |
+| social_trending_posts | GET /api/social/trending | Trending posts |
 | social_post_trade | POST /api/social/post-trade | Auto-post trade update |
 | social_conversations | GET /api/social/conversations | List chats |
 | social_direct_messages | GET /api/social/direct-messages | List DMs |
@@ -572,9 +643,9 @@ RULES:
 5. Use signals_summary before opening perps positions
 6. Use dex_quote before swaps to check slippage
 
-YOUR 127 TOOLS (22 modules):
+YOUR 176 TOOLS (22 modules):
 - Wallet (8): get_address, get_balance, send_avax, sign_message, sign_typed_data, simulate_tx, switch_network, update_policy
-- Swap (4): swap_quote_buy, swap_quote_sell, swap_buy_arena, swap_sell_arena
+- Swap (5): get_balances, swap_quote_buy, swap_quote_sell, swap_buy_arena, swap_sell_arena
 - Staking (4): stake_info, stake_arena, unstake_arena, buy_and_stake
 - DEX (5): dex_tokens, dex_token_info, dex_balance, dex_quote, dex_swap
 - Launchpad (6): launchpad_overview, launchpad_recent, launchpad_token, launchpad_quote, launchpad_buy, launchpad_sell
@@ -582,13 +653,18 @@ YOUR 127 TOOLS (22 modules):
 - Bridge (8): bridge_info, bridge_chains, bridge_tokens, bridge_token, bridge_connections, bridge_quote, bridge_routes, bridge_status
 - Perps (20): perps_register, perps_registration_status, perps_wallet_address, perps_auth_status, perps_auth_payload, perps_auth_submit, perps_enable_hip3, perps_trading_pairs, perps_update_leverage, perps_place_order, perps_cancel_orders, perps_close_position, perps_orders, perps_open_orders, perps_positions, perps_trade_history, perps_deposit_info, perps_arbitrum_usdc_balance, perps_arbitrum_eth_balance, perps_deposit_usdc
 - Signals (8): signals_market, signals_technical, signals_whales, signals_funding, signals_summary, signals_scan, signals_asset_contexts, signals_candles
-- Social (27): social_me, social_search_users, social_user_by_handle, social_user_by_id, social_top_users, social_update_profile, social_update_banner, social_follow, social_unfollow, social_followers, social_following, social_shares_stats, social_shareholders, social_holdings, social_create_thread, social_like_thread, social_repost, social_post_trade, social_conversations, social_direct_messages, social_group_chats, social_group_info, social_group_members, social_get_or_create_dm, social_send_message, social_messages, social_older_messages, social_search_messages, social_accept_chat, social_react
+- Social (78): social_me, social_search_users, social_user_by_handle, social_user_by_id, social_user_profile, social_top_users, social_update_profile, social_update_banner, social_follow, social_unfollow, social_followers, social_following, social_create_thread (NEW post only), social_answer_thread (REPLY to thread — {content, threadId, userId}), social_get_thread, social_thread_answers, social_nested_answers, social_like_thread, social_unlike_thread, social_repost, social_delete_repost, social_quote_thread, social_delete_thread, social_my_feed, social_trending_posts, social_user_threads, social_post_trade, social_conversations, social_direct_messages, social_group_chats, social_group_info, social_group_members, social_get_or_create_dm, social_accept_chat, social_leave_chat, social_send_message, social_messages, social_older_messages, social_messages_around, social_unread_messages, social_search_messages, social_react, social_unreact, social_search_rooms, social_search_dms, social_search_project_chats, social_pin_group, social_chat_settings, social_update_chat_settings, social_mention_status, social_mute_group, social_chat_requests, social_notifications, social_unseen_notifications, social_mark_notification_seen, social_mark_all_seen, social_top_communities, social_new_communities, social_search_communities, social_community_feed, social_follow_community, social_unfollow_community, social_shares_stats, social_shareholders, social_holdings, social_earnings_breakdown, social_holder_addresses, social_create_stage, social_start_stage, social_end_stage, social_active_stages, social_stage_info, social_join_stage, social_leave_stage, social_create_livestream, social_start_livestream, social_end_livestream, social_active_livestreams
 - Market Data (6): market_price, market_trending, market_top, market_search, market_avax_price, market_arena_price
 - DeFi (8): defi_savax_info, defi_savax_quote, defi_savax_stake, defi_savax_unstake, defi_vault_info, defi_vault_quote, defi_vault_deposit, defi_vault_withdraw
 - Policy (4): policy_get, policy_set, update_policy, policy_budget
 - Copy Trading (5): copy_get_positions, copy_agent_positions, copy_calculate_orders, copy_execute_orders, copy_execute
 - x402 Micropayments (3): x402_create, x402_access, x402_pay
 - Advanced (2): agent_register, call_contract
+
+IMPORTANT — REPLYING TO THREADS:
+- To create a NEW post: POST /api/social/thread {content}
+- To REPLY to a thread: POST /api/social/answer {content, threadId, userId}
+- Do NOT use /api/social/thread for replies. Use /api/social/answer.
 
 WORKFLOW:
 1. GET /api/signals/summary?coin=BTC  (check signals)
@@ -1220,9 +1296,16 @@ curl -X POST $BASE_URL/api/dex/swap \\
         <tr><td>social_shares_stats</td><td class="method-get">GET /api/social/shares-stats/:userId</td><td>Share stats</td></tr>
         <tr><td>social_shareholders</td><td class="method-get">GET /api/social/shareholders</td><td>Share holders</td></tr>
         <tr><td>social_holdings</td><td class="method-get">GET /api/social/holdings</td><td>Your holdings</td></tr>
-        <tr><td>social_create_thread</td><td class="method-post">POST /api/social/thread</td><td>Post {content, replyToId?}</td></tr>
+        <tr><td>social_create_thread</td><td class="method-post">POST /api/social/thread</td><td>Create NEW post {content}</td></tr>
+        <tr><td>social_answer_thread</td><td class="method-post">POST /api/social/answer</td><td>Reply to thread {content, threadId, userId}</td></tr>
+        <tr><td>social_get_thread</td><td class="method-get">GET /api/social/thread/:threadId</td><td>Get thread details</td></tr>
+        <tr><td>social_thread_answers</td><td class="method-get">GET /api/social/thread/:threadId/answers</td><td>Thread replies</td></tr>
         <tr><td>social_like_thread</td><td class="method-post">POST /api/social/like</td><td>Like {threadId}</td></tr>
+        <tr><td>social_unlike_thread</td><td class="method-post">POST /api/social/unlike</td><td>Unlike {threadId}</td></tr>
         <tr><td>social_repost</td><td class="method-post">POST /api/social/repost</td><td>Repost {threadId}</td></tr>
+        <tr><td>social_quote_thread</td><td class="method-post">POST /api/social/quote</td><td>Quote {content, quotedThreadId}</td></tr>
+        <tr><td>social_my_feed</td><td class="method-get">GET /api/social/feed</td><td>Your feed</td></tr>
+        <tr><td>social_trending_posts</td><td class="method-get">GET /api/social/trending</td><td>Trending posts</td></tr>
         <tr><td>social_post_trade</td><td class="method-post">POST /api/social/post-trade</td><td>Auto-post trade update</td></tr>
         <tr><td>social_conversations</td><td class="method-get">GET /api/social/conversations</td><td>List chats</td></tr>
         <tr><td>social_direct_messages</td><td class="method-get">GET /api/social/direct-messages</td><td>List DMs</td></tr>
@@ -1563,7 +1646,7 @@ async function main() {
 
   // Social
   app.post("/api/social/thread", async (req, res) => {
-    try { res.json(await agent.social.createThread(req.body.content, req.body.replyToId)); }
+    try { res.json(await agent.social.createThread(req.body.content)); }
     catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
